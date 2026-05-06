@@ -68,7 +68,7 @@ class QuizQuestion {
 
 // ─── QuizChoices ───────────────────────────────────────────
 // ID | question_id | name | is_correct | created_at | updated_at | name_en
-// Lưu ý: is_correct KHÔNG được trả về từ API (xử lý phía server)
+// is_correct KHÔNG được trả về từ API (xử lý phía server)
 
 class QuizChoice {
   QuizChoice({
