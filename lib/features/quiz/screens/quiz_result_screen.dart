@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/quiz_models.dart';
 import '../services/quiz_service.dart';
+import '../widgets/quiz_theme.dart';
 
 class QuizResultScreen extends StatefulWidget {
   const QuizResultScreen({
@@ -36,106 +37,186 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
         quizId: widget.quizId,
         userId: widget.userId,
       );
-      setState(() {
-        _result = result;
-        _isLoading = false;
-      });
+      setState(() { _result = result; _isLoading = false; });
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      setState(() { _error = e.toString(); _isLoading = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: QuizColors.background,
       appBar: AppBar(
-        title: const Text('Kết quả'),
-        centerTitle: true,
+        backgroundColor: QuizColors.background,
+        elevation: 0,
         automaticallyImplyLeading: false,
+        title: const Text(
+          'Kết quả',
+          style: TextStyle(color: QuizColors.gold, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: QuizColors.gold))
           : _error != null
-              ? Center(child: Text('Lỗi: $_error'))
-              : _buildResult(context, _result!),
+              ? Center(child: Text('Lỗi: $_error', style: const TextStyle(color: QuizColors.cream)))
+              : _buildResult(_result!),
     );
   }
 
-  Widget _buildResult(BuildContext context, QuizResult result) {
+  Widget _buildResult(QuizResult result) {
     final passed = result.passed;
-    final color = passed ? Colors.green : Colors.orange;
-    final icon = passed ? Icons.emoji_events_rounded : Icons.sentiment_neutral_rounded;
+    final accentColor = passed ? QuizColors.olive : QuizColors.brown;
+    final accentLight = passed ? QuizColors.oliveLight : QuizColors.brownLight;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon
-            Icon(icon, size: 80, color: color),
-            const SizedBox(height: 16),
+            // Trophy / icon
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: QuizColors.cardDark,
+                shape: BoxShape.circle,
+                border: Border.all(color: accentColor, width: 2),
+              ),
+              child: Icon(
+                passed ? Icons.emoji_events_rounded : Icons.sentiment_neutral_rounded,
+                size: 52,
+                color: accentColor,
+              ),
+            ),
+            const SizedBox(height: 20),
 
             // Score
             Text(
               '${result.score}%',
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+              style: TextStyle(
+                color: accentLight,
+                fontSize: 56,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 8),
-
-            // Correct/Total
+            const SizedBox(height: 4),
             Text(
               '${result.correct}/${result.total} câu đúng',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: const TextStyle(color: QuizColors.cream, fontSize: 16),
             ),
             const SizedBox(height: 4),
             Text(
               'Điểm đạt: ${result.passingScore}%',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Colors.grey),
+              style: const TextStyle(color: QuizColors.goldLight, fontSize: 13),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
 
             // Message card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                border: Border.all(color: color.withOpacity(0.4)),
+                color: QuizColors.cardDark,
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: accentColor.withOpacity(0.5), width: 1.5),
               ),
-              child: Text(
-                result.message,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: color,
+              child: Column(
+                children: [
+                  Icon(
+                    passed ? Icons.card_giftcard_rounded : Icons.refresh_rounded,
+                    color: accentLight,
+                    size: 28,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    result.message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: accentLight,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
+                      height: 1.5,
                     ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
 
-            // Back button
+            // Stats card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: QuizColors.cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: QuizColors.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _StatItem(label: 'Đúng', value: '${result.correct}', color: QuizColors.oliveLight),
+                  _Divider(),
+                  _StatItem(label: 'Sai', value: '${result.answered - result.correct}', color: QuizColors.brownLight),
+                  _Divider(),
+                  _StatItem(label: 'Bỏ qua', value: '${result.total - result.answered}', color: QuizColors.goldLight),
+                ],
+              ),
+            ),
+            const SizedBox(height: 36),
+
+            // Button
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
-                onPressed: () =>
-                    Navigator.popUntil(context, (route) => route.isFirst),
-                child: const Text('Về trang chủ'),
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: QuizColors.gold,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Về trang chủ',
+                  style: TextStyle(
+                    color: QuizColors.background,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  const _StatItem({required this.label, required this.value, required this.color});
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: QuizColors.goldLight, fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 36, color: QuizColors.border);
   }
 }

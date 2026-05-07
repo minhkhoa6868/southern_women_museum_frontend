@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'quiz_theme.dart';
 
 class CountdownTimer extends StatefulWidget {
   const CountdownTimer({
@@ -53,33 +54,44 @@ class _CountdownTimerState extends State<CountdownTimer> {
     super.dispose();
   }
 
-  Color get _color {
-    if (_remaining > widget.seconds * 0.5) return Colors.green;
-    if (_remaining > widget.seconds * 0.25) return Colors.orange;
-    return Colors.red;
+  Color get _barColor {
+    final ratio = _remaining / widget.seconds;
+    if (ratio > 0.5) return QuizColors.olive;
+    if (ratio > 0.25) return QuizColors.gold;
+    return QuizColors.brown;
   }
 
   @override
   Widget build(BuildContext context) {
-    final progress = _remaining / widget.seconds;
-    return Column(
+    final progress = (_remaining / widget.seconds).clamp(0.0, 1.0);
+    return Row(
       children: [
-        Text(
-          '$_remaining',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: _color,
+        // Icon đồng hồ
+        Icon(Icons.timer_outlined, color: _barColor, size: 18),
+        const SizedBox(width: 8),
+        // Số giây
+        SizedBox(
+          width: 28,
+          child: Text(
+            '$_remaining',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _barColor,
+            ),
           ),
         ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0),
-            minHeight: 8,
-            backgroundColor: Colors.grey.shade300,
-            valueColor: AlwaysStoppedAnimation<Color>(_color),
+        const SizedBox(width: 8),
+        // Progress bar
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: QuizColors.border,
+              valueColor: AlwaysStoppedAnimation<Color>(_barColor),
+            ),
           ),
         ),
       ],
