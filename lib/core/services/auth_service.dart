@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import '../../models/auth_model.dart';
 
 class AuthService with ChangeNotifier {
   final ApiService apiService;
@@ -8,6 +9,7 @@ class AuthService with ChangeNotifier {
   String? _accessToken;
   bool _isLoading = false;
   String? _error;
+  User? _currentUser;
 
   AuthService({required this.apiService}) {
     _loadTokenFromStorage();
@@ -18,12 +20,17 @@ class AuthService with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isAuthenticated => _accessToken != null;
+  User? get currentUser => _currentUser;
 
   // Load token from local storage on initialization
   Future<void> _loadTokenFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       _accessToken = prefs.getString('access_token');
+      if (_accessToken != null) {
+        apiService.setAuthToken(_accessToken);
+        await getCurrentUser(); // Tự động lấy user info nếu có token
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading token from storage: $e');
@@ -35,6 +42,7 @@ class AuthService with ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', token);
+      apiService.setAuthToken(token);
     } catch (e) {
       debugPrint('Error saving token to storage: $e');
     }
@@ -45,8 +53,71 @@ class AuthService with ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('access_token');
+      apiService.setAuthToken(null);
     } catch (e) {
       debugPrint('Error clearing token from storage: $e');
+    }
+  }
+
+  // Get current user profile
+  Future<bool> getCurrentUser() async {
+    if (_accessToken == null) {
+      return false;
+    }
+    
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final response = await apiService.getCurrentUser();
+      _currentUser = User.fromJson(response);
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _extractErrorMessage(e.toString());
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Update user profile
+  Future<bool> updateUser({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+  }) async {
+    if (_accessToken == null) {
+      _error = 'Not authenticated';
+      return false;
+    }
+    
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final response = await apiService.updateUser(
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: phone,
+      );
+      
+      _currentUser = User.fromJson(response);
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _extractErrorMessage(e.toString());
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
   }
 
@@ -75,6 +146,10 @@ class AuthService with ChangeNotifier {
 
       _accessToken = accessToken;
       await _saveTokenToStorage(accessToken);
+      
+      // Lấy thông tin user sau khi login thành công
+      await getCurrentUser();
+      
       _isLoading = false;
       notifyListeners();
       return true;
@@ -121,13 +196,13 @@ class AuthService with ChangeNotifier {
   // Logout
   Future<void> logout() async {
     _accessToken = null;
+    _currentUser = null;
     await _clearTokenFromStorage();
     notifyListeners();
   }
 
   // Helper method to extract error message
   String _extractErrorMessage(String errorString) {
-    // Try to extract message from ApiException format: "ApiException(statusCode): message"
     if (errorString.contains('ApiException')) {
       final match = RegExp(r'ApiException\(\d+\):\s*(.+)').firstMatch(errorString);
       if (match != null) {
