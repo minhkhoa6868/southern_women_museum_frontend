@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-const String fallbackApiUrl = 'http://10.0.2.2:3000/api';
+const String fallbackApiUrl = 'http://localhost:3000/api';
 
 class ApiException implements Exception {
   ApiException(this.statusCode, this.message);
@@ -128,6 +128,39 @@ class ApiService {
     }
 
     return null;
+  }
+
+  // Auth endpoints
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    return postJson(
+      path: '/auth/login',
+      body: {
+        'email': email,
+        'password': password,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    return postJson(
+      path: '/auth/register',
+      body: {
+        'first_name': firstName,
+        'last_name': lastName,
+        'email': email,
+        'phone': phone,
+        'password': password,
+      },
+    );
   }
 
   void dispose() {
