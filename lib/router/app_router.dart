@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../screen/auth/login_screen.dart';
+import '../screen/auth/signup_screen.dart';
 import '../screen/home/home_screen.dart';
 import '../screen/layout/layout_screen.dart';
 import '../screen/map/map_screen.dart';
@@ -8,6 +10,7 @@ import '../screen/tour/tour_screen.dart';
 
 class AppRouter {
   static const String login = '/login';
+  static const String signup = '/signup';
   static const String mainLayout = '/';
   static const String home = '/home';
   static const String map = '/map';
@@ -18,7 +21,12 @@ class AppRouter {
     switch (settings.name) {
       case login:
         return MaterialPageRoute(
-          builder: (_) => const _PlaceholderScreen(title: 'Login'),
+          builder: (_) => const LoginScreen(),
+        );
+
+      case signup:
+        return MaterialPageRoute(
+          builder: (_) => const SignupScreen(),
         );
 
       case mainLayout:
@@ -42,16 +50,5 @@ class AppRouter {
               Scaffold(body: Center(child: Text('Route not found'))),
         );
     }
-  }
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(body: Center(child: Text(title)));
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'core/services/auth_service.dart';
 import 'core/theme/light_theme.dart';
 import 'core/theme/dark_theme.dart';
-import 'screen/layout/layout_screen.dart';
+import 'router/app_router.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -12,20 +14,12 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  ThemeMode _themeMode = ThemeMode.dark;
-
-  void _toggleTheme() {
-    setState(() {
-      _themeMode = _themeMode == ThemeMode.dark
-          ? ThemeMode.light
-          : ThemeMode.dark;
-    });
-  }
+  final ThemeMode _themeMode = ThemeMode.dark;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Guide to Southern Women\'s Museum',
       // Light theme
       theme: LightTheme.theme,
 
@@ -35,7 +29,13 @@ class _MyAppState extends State<MyApp> {
       // Dynamic theme mode
       themeMode: _themeMode,
 
-      home: LayoutScreen(onThemeToggle: _toggleTheme),
+      onGenerateRoute: AppRouter.generateRoute,
+      initialRoute: _getInitialRoute(),
     );
+  }
+
+  String _getInitialRoute() {
+    final authService = context.read<AuthService>();
+    return authService.isAuthenticated ? AppRouter.home : AppRouter.login;
   }
 }
