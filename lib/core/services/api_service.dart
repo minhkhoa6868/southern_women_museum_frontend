@@ -22,6 +22,7 @@ class ApiService {
 
   final http.Client _client;
   final String baseUrl;
+  String? _authToken;
 
   static String _resolveBaseUrl(String? overrideBaseUrl) {
     if (overrideBaseUrl != null && overrideBaseUrl.isNotEmpty) {
@@ -44,6 +45,25 @@ class ApiService {
     return '$cleanBase$cleanPath';
   }
 
+  // Set auth token
+  void setAuthToken(String? token) {
+    _authToken = token;
+  }
+
+  // Get headers with auth token
+  Map<String, String> _getHeaders(Map<String, String>? additionalHeaders) {
+    final headers = <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      ...?additionalHeaders,
+    };
+    
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $_authToken';
+    }
+    
+    return headers;
+  }
+
   Future<Map<String, dynamic>> postJson({
     required String path,
     required Map<String, dynamic> body,
@@ -55,10 +75,7 @@ class ApiService {
     final response = await _client
         .post(
           Uri.parse(resolvedUrl),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-            ...?headers,
-          },
+          headers: _getHeaders(headers),
           body: jsonEncode(body),
         )
         .timeout(timeout);
@@ -76,10 +93,45 @@ class ApiService {
     final response = await _client
         .get(
           Uri.parse(resolvedUrl),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-            ...?headers,
-          },
+          headers: _getHeaders(headers),
+        )
+        .timeout(timeout);
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> patchJson({
+    required String path,
+    required Map<String, dynamic> body,
+    Map<String, String>? headers,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final resolvedUrl = _joinUrl(baseUrl, path);
+
+    final response = await _client
+        .patch(
+          Uri.parse(resolvedUrl),
+          headers: _getHeaders(headers),
+          body: jsonEncode(body),
+        )
+        .timeout(timeout);
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> putJson({
+    required String path,
+    required Map<String, dynamic> body,
+    Map<String, String>? headers,
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final resolvedUrl = _joinUrl(baseUrl, path);
+
+    final response = await _client
+        .put(
+          Uri.parse(resolvedUrl),
+          headers: _getHeaders(headers),
+          body: jsonEncode(body),
         )
         .timeout(timeout);
 
@@ -160,6 +212,42 @@ class ApiService {
         'phone': phone,
         'password': password,
       },
+    );
+  }
+
+  // User Profile endpoints
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    return getJson(path: '/profile/me');
+  }
+
+  Future<Map<String, dynamic>> updateUser({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+  }) async {
+    return patchJson(
+      path: '/profile/update',
+      body: {
+        'first_name': firstName,
+        'last_name': lastName,
+        'email': email,
+        'phone': phone,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> updateLanguage(String languageCode) async {
+    return patchJson(
+      path: '/profile/update',
+      body: {'language': languageCode},
+    );
+  }
+
+  Future<Map<String, dynamic>> updateNotificationSettings(bool isEnabled) async {
+    return patchJson(
+      path: '/profile/update',
+      body: {'is_notification_enabled': isEnabled},
     );
   }
 
