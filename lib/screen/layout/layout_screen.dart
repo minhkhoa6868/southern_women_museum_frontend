@@ -1,8 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/constants/color_constants.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/theme_service.dart';
 import '../../router/app_router.dart';
 import '../home/home_screen.dart';
 import '../map/map_screen.dart';
@@ -10,10 +13,9 @@ import '../profile/profile_screen.dart';
 import '../tour/tour_screen.dart';
 
 class LayoutScreen extends StatefulWidget {
-  const LayoutScreen({super.key, this.onThemeToggle, this.initialRoute});
+  const LayoutScreen({super.key, this.initialRoute});
 
-  final VoidCallback? onThemeToggle;
-  final String? initialRoute; // Thêm dòng này
+  final String? initialRoute;
 
   @override
   State<LayoutScreen> createState() => _LayoutScreenState();
@@ -82,9 +84,13 @@ class _LayoutScreenState extends State<LayoutScreen> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: widget.onThemeToggle,
+        onPressed: () => context.read<ThemeService>().toggle(),
         tooltip: 'Toggle Theme',
-        child: const Icon(Icons.brightness_6_rounded),
+        child: Icon(
+          context.watch<ThemeService>().isDark
+              ? Icons.light_mode_rounded
+              : Icons.dark_mode_rounded,
+        ),
       ),
 
       bottomNavigationBar: Padding(
@@ -110,7 +116,11 @@ class _LayoutScreenState extends State<LayoutScreen> {
         return ProfileScreen();
       case AppRouter.home:
       default:
-        return const HomeScreen(userName: 'Guest',);
+        final user = context.read<AuthService>().currentUser;
+        final name = user != null
+            ? '${user.firstName} ${user.lastName}'.trim()
+            : 'Guest';
+        return HomeScreen(userName: name);
     }
   }
 

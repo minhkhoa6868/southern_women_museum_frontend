@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/color_constants.dart';
 import '../../core/services/api_service.dart';
 import '../../models/event_model.dart';
@@ -17,17 +18,22 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Event> _events = [];
   bool _isLoadingEvents = true;
+  bool _loaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadEvents();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loaded) {
+      _loaded = true;
+      _loadEvents();
+    }
   }
 
   Future<void> _loadEvents() async {
     setState(() => _isLoadingEvents = true);
     try {
-      final events = await ApiService().getEvents();
+      // Use the singleton ApiService from Provider — it already carries the auth token.
+      final events = await context.read<ApiService>().getEvents();
       if (mounted) setState(() => _events = events);
     } catch (_) {
       // keep empty list on error
