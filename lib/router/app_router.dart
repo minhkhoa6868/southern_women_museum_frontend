@@ -16,6 +16,9 @@ class AppRouter {
   static const String map = '/map';
   static const String profile = '/profile';
   static const String tours = '/tours';
+  static const String mode = '/mode';
+
+  static String get modeSelection => AppRouter.mode;
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -30,10 +33,13 @@ class AppRouter {
         );
 
       case mainLayout:
-        return MaterialPageRoute(builder: (_) => const LayoutScreen());
+        final initialRoute = settings.arguments as String?;
+        return MaterialPageRoute(
+          builder: (_) => LayoutScreen(initialRoute: initialRoute),
+        );
 
       case home:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+        return MaterialPageRoute(builder: (_) => const HomeScreen(userName: 'Guest',));
 
       case map:
         return MaterialPageRoute(builder: (_) => const MapScreen());

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:southern_women_museum/router/app_router.dart';
 import '../../core/services/auth_service.dart';
 import '../../widgets/auth_background.dart';
 import '../../widgets/auth_button.dart';
 import '../../widgets/auth_text_field.dart';
 import '../../widgets/logo_section.dart';
+import '../select_mode/mode_selected_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,10 +16,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  late final TextEditingController _emailController;
-  late final TextEditingController _passwordController;
-  late final GlobalKey<FormState> _formKey;
-  
+  late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+  late GlobalKey<FormState> _formKey;
   bool _obscurePassword = true;
 
   @override
@@ -35,44 +36,55 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleLogin(AuthService authService) async {
-    if (!_validateForm()) return;
+  void _handleLogin(AuthService authService) async {
+    if (_formKey.currentState!.validate()) {
+      final success = await authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
 
-    final success = await authService.login(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
+      if (!mounted) return;
 
-    if (!mounted) return;
+      if (success) {
+        // Hiển thị màn hình chọn mode (full-screen, slide lên từ dưới)
+        final selectedMode = await showGeneralDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          barrierLabel: '',
+          transitionDuration: const Duration(milliseconds: 420),
+          pageBuilder: (_, _, _) => const ModeSelectionScreen(),
+          transitionBuilder: (_, anim, _, child) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+            ),
+            child: child,
+          ),
+        );
 
-    if (success) {
-      _showSuccessSnackBar('Login successful!');
-      _navigateToHome();
-    } else {
-      _showErrorSnackBar(authService.error ?? 'Login failed');
+        if (!mounted) return;
+
+        // Điều hướng đến đúng tab theo lựa chọn
+        final initialTab = selectedMode == 'adventure'
+            ? AppRouter.tours
+            : AppRouter.map;
+
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRouter.mainLayout,
+          (_) => false,
+          arguments: initialTab,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authService.error ?? 'Login failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-  }
-
-  bool _validateForm() => _formKey.currentState?.validate() ?? false;
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _navigateToHome() {
-    Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
   }
 
   void _navigateToSignup() => Navigator.of(context).pushNamed('/signup');
