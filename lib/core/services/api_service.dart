@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import '../../models/event_model.dart';
+
 const String fallbackApiUrl = 'http://localhost:3000/api';
 
 class ApiException implements Exception {
@@ -253,5 +255,30 @@ class ApiService {
 
   void dispose() {
     _client.close();
+  }
+
+  Future<List<Event>> getEvents() async {
+    // getJson returns a Map<String, dynamic>
+    final response = await getJson(path: '/admin/events');
+    
+    final dynamic data = response['data'];
+
+    if (data is List) {
+      return data.map((json) => Event.fromJson(json as Map<String, dynamic>)).toList();
+    }
+    
+    return [];
+  }
+
+  // Get only active events (đang diễn ra)
+  Future<List<Event>> getActiveEvents() async {
+    final allEvents = await getEvents();
+    return allEvents.where((e) => e.status == 'active').toList();
+  }
+
+  // Get upcoming events
+  Future<List<Event>> getUpcomingEvents() async {
+    final allEvents = await getEvents();
+    return allEvents.where((e) => e.status == 'upcoming').toList();
   }
 }

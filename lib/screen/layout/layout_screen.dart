@@ -10,16 +10,23 @@ import '../profile/profile_screen.dart';
 import '../tour/tour_screen.dart';
 
 class LayoutScreen extends StatefulWidget {
-  const LayoutScreen({super.key, this.onThemeToggle});
+  const LayoutScreen({super.key, this.onThemeToggle, this.initialRoute});
 
   final VoidCallback? onThemeToggle;
+  final String? initialRoute; // Thêm dòng này
 
   @override
   State<LayoutScreen> createState() => _LayoutScreenState();
 }
 
-class _LayoutScreenState extends State<LayoutScreen> with RouteAware {
-  String _currentRoute = AppRouter.home;
+class _LayoutScreenState extends State<LayoutScreen> {
+  late String _currentRoute;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRoute = widget.initialRoute ?? AppRouter.home;
+  }
 
   static const List<_NavItem> _items = <_NavItem>[
     _NavItem(label: 'Home', icon: Icons.home_rounded, route: AppRouter.home),
@@ -103,7 +110,7 @@ class _LayoutScreenState extends State<LayoutScreen> with RouteAware {
         return ProfileScreen();
       case AppRouter.home:
       default:
-        return const HomeScreen();
+        return const HomeScreen(userName: 'Guest',);
     }
   }
 
