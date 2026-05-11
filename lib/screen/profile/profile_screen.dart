@@ -287,65 +287,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final textTheme = theme.textTheme;
     
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Icon(Icons.person_outline, color: colorScheme.primary, size: 24),
-            const SizedBox(width: 8),
-            Text(
-              'My Profile',
-              style: textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+
+    return Consumer<AuthService>(
+      builder: (context, authService, _) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline,
+                        color: colorScheme.primary, size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      'My Profile',
+                      style: textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        centerTitle: false,
-      ),
-      body: Consumer<AuthService>(
-        builder: (context, authService, _) {
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Header
-                _buildProfileHeader(theme, colorScheme, textTheme),
-                
-                const SizedBox(height: 8),
-                
-                // PERSONAL INFORMATION Title with Edit button frame
-                _buildPersonalInfoTitle(colorScheme, textTheme),
-                
-                // Frame - Personal Information Content
-                _buildPersonalInfoFrame(theme, textTheme, colorScheme),
-                
-                const SizedBox(height: 24),
-                
-                // SETTINGS Title
-                _buildSettingsTitle(colorScheme, textTheme),
-                
-                // Frame - Settings Content
-                _buildSettingsFrame(theme, textTheme, colorScheme),
-                
-                const SizedBox(height: 16),
-                
-                // Sign Out Frame
-                _buildSignOutFrame(theme, authService),
-                
-                const SizedBox(height: 40),
-              ],
-            ),
-          );
-        },
-      ),
+              _buildProfileHeader(theme, colorScheme, textTheme),
+              const SizedBox(height: 8),
+              _buildPersonalInfoTitle(colorScheme, textTheme),
+              _buildPersonalInfoFrame(theme, textTheme, colorScheme),
+              const SizedBox(height: 24),
+              _buildSettingsTitle(colorScheme, textTheme),
+              _buildSettingsFrame(theme, textTheme, colorScheme),
+              const SizedBox(height: 16),
+              _buildSignOutFrame(theme, authService),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 

@@ -74,8 +74,6 @@ class _LayoutScreenState extends State<LayoutScreen> {
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 100),
               ],
             ),
           ),
