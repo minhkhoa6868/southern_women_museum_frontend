@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-const String fallbackApiUrl = 'http://10.0.2.2:3000/api';
+// const String fallbackApiUrl = 'http://10.0.2.2:3000/api';
+const String fallbackApiUrl = 'http://localhost:3000/api';
 
 class ApiException implements Exception {
   ApiException(this.statusCode, this.message);
