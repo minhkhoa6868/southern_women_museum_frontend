@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import '../../models/artifact_model.dart';
 import '../../models/event_model.dart';
+import '../../models/room_model.dart';
 
 const String fallbackApiUrl = 'http://localhost:3000/api';
 
@@ -256,6 +258,49 @@ class ApiService {
   void dispose() {
     _client.close();
   }
+
+  // ─── Rooms ──────────────────────────────────────────────────────────────────
+
+  Future<List<RoomModel>> getRooms() async {
+    final response = await postJson(
+      path: '/rooms/all',
+      body: {'page': 1, 'limit': 100},
+    );
+    return _parsePaginatedList(response, RoomModel.fromJson);
+  }
+
+  // ─── Artifacts ──────────────────────────────────────────────────────────────
+
+  Future<List<Artifact>> getRoomArtifacts(String roomId) async {
+    final response = await postJson(
+      path: '/artifacts/all',
+      body: {
+        'page': 1,
+        'limit': 200,
+        'filters': {'roomId': roomId},
+      },
+    );
+    final list = _parsePaginatedList(response, Artifact.fromJson);
+    list.sort((a, b) => a.orderNo.compareTo(b.orderNo));
+    return list;
+  }
+
+  List<T> _parsePaginatedList<T>(
+    Map<String, dynamic> response,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    final data = response['data'];
+    List<dynamic>? items;
+    if (data is List) {
+      items = data;
+    } else if (data is Map<String, dynamic>) {
+      final inner = data['items'] ?? data['data'] ?? data['results'];
+      if (inner is List) items = inner;
+    }
+    return items?.whereType<Map<String, dynamic>>().map(fromJson).toList() ?? [];
+  }
+
+  // ─── Events ─────────────────────────────────────────────────────────────────
 
   Future<List<Event>> getEvents() async {
     // getJson returns a Map<String, dynamic>

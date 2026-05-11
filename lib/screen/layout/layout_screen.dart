@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/constants/color_constants.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/services/theme_service.dart';
 import '../../router/app_router.dart';
 import '../home/home_screen.dart';
 import '../map/map_screen.dart';
@@ -80,16 +79,6 @@ class _LayoutScreenState extends State<LayoutScreen> {
               ],
             ),
           ),
-        ),
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.read<ThemeService>().toggle(),
-        tooltip: 'Toggle Theme',
-        child: Icon(
-          context.watch<ThemeService>().isDark
-              ? Icons.light_mode_rounded
-              : Icons.dark_mode_rounded,
         ),
       ),
 
