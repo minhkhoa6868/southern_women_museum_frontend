@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/theme_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -818,7 +819,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          // Notifications - with bell icon
+          // Notifications
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             secondary: Icon(Icons.notifications_outlined, color: colorScheme.primary, size: 22),
@@ -833,8 +834,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             inactiveTrackColor: Colors.grey[300],
           ),
           _buildDivider(theme),
-          
-          // Language - with globe icon
+
+          // Language
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(Icons.language_outlined, color: colorScheme.primary, size: 22),
@@ -854,8 +855,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => _showLanguageDialog(),
           ),
           _buildDivider(theme),
-          
-          // Privacy Settings - with lock icon
+
+          // Dark Mode toggle
+          Consumer<ThemeService>(
+            builder: (context, themeService, _) => SwitchListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              secondary: Icon(
+                themeService.isDark
+                    ? Icons.dark_mode_outlined
+                    : Icons.light_mode_outlined,
+                color: colorScheme.primary,
+                size: 22,
+              ),
+              title: Text('Dark Mode', style: textTheme.bodyLarge),
+              value: themeService.isDark,
+              onChanged: (_) => themeService.toggle(),
+              activeThumbColor: colorScheme.primary,
+              activeTrackColor: colorScheme.primary.withValues(alpha: 0.5),
+              inactiveThumbColor: Colors.grey[400],
+              inactiveTrackColor: Colors.grey[300],
+            ),
+          ),
+          _buildDivider(theme),
+
+          // Privacy Settings
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             leading: Icon(Icons.lock_outlined, color: colorScheme.primary, size: 22),
