@@ -711,7 +711,10 @@ class _ArtifactCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              _ArtifactThumbnail(url: artifact.imgUrl),
+              _ArtifactThumbnail(
+                primaryUrl: artifact.presignedImgUrl,
+                fallbackUrl: artifact.imgUrl,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -756,10 +759,35 @@ class _ArtifactCard extends StatelessWidget {
   }
 }
 
-class _ArtifactThumbnail extends StatelessWidget {
-  const _ArtifactThumbnail({required this.url});
+class _ArtifactThumbnail extends StatefulWidget {
+  const _ArtifactThumbnail({
+    required this.primaryUrl,
+    required this.fallbackUrl,
+  });
 
-  final String? url;
+  final String? primaryUrl;
+  final String? fallbackUrl;
+
+  @override
+  State<_ArtifactThumbnail> createState() => _ArtifactThumbnailState();
+}
+
+class _ArtifactThumbnailState extends State<_ArtifactThumbnail> {
+  late String? _currentUrl;
+  bool _usedFallback = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUrl =
+        _normalize(widget.primaryUrl) ?? _normalize(widget.fallbackUrl);
+  }
+
+  String? _normalize(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -768,7 +796,7 @@ class _ArtifactThumbnail extends StatelessWidget {
       child: const Icon(Icons.image_outlined),
     );
 
-    if (url == null || url!.isEmpty) {
+    if (_currentUrl == null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: SizedBox(width: 62, height: 62, child: fallback),
@@ -778,12 +806,31 @@ class _ArtifactThumbnail extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Image.network(
-        url!,
+        _currentUrl!,
         width: 78,
         height: 78,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) =>
-            SizedBox(width: 78, height: 78, child: fallback),
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint(
+            'Artifact thumbnail failed: url=$_currentUrl error=$error',
+          );
+
+          final fallbackUrl = _normalize(widget.fallbackUrl);
+          if (!_usedFallback &&
+              fallbackUrl != null &&
+              fallbackUrl != _currentUrl) {
+            _usedFallback = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _currentUrl = fallbackUrl;
+                });
+              }
+            });
+          }
+
+          return SizedBox(width: 78, height: 78, child: fallback);
+        },
       ),
     );
   }
