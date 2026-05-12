@@ -6,6 +6,7 @@ import '../screen/home/home_screen.dart';
 import '../screen/layout/layout_screen.dart';
 import '../screen/map/map_screen.dart';
 import '../screen/profile/profile_screen.dart';
+import '../screen/room/room_screen.dart';
 import '../screen/tour/tour_screen.dart';
 
 class AppRouter {
@@ -15,6 +16,7 @@ class AppRouter {
   static const String home = '/home';
   static const String map = '/map';
   static const String profile = '/profile';
+  static const String room = '/room';
   static const String tours = '/tours';
   static const String mode = '/mode';
 
@@ -23,14 +25,10 @@ class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case login:
-        return MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const LoginScreen());
 
       case signup:
-        return MaterialPageRoute(
-          builder: (_) => const SignupScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const SignupScreen());
 
       case mainLayout:
         final initialRoute = settings.arguments as String?;
@@ -39,13 +37,21 @@ class AppRouter {
         );
 
       case home:
-        return MaterialPageRoute(builder: (_) => const HomeScreen(userName: 'Guest',));
+        return MaterialPageRoute(
+          builder: (_) => const HomeScreen(userName: 'Guest'),
+        );
 
       case map:
         return MaterialPageRoute(builder: (_) => const MapScreen());
 
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
+
+      case room:
+        final roomCode = settings.arguments as String?;
+        return MaterialPageRoute(
+          builder: (_) => RoomScreen(roomCode: roomCode ?? ''),
+        );
 
       case tours:
         return MaterialPageRoute(builder: (_) => const TourScreen());

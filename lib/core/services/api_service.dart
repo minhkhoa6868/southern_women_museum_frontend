@@ -33,9 +33,13 @@ class ApiService {
       return overrideBaseUrl;
     }
 
-    final envBaseUrl = dotenv.env['API_URL'];
-    if (envBaseUrl != null && envBaseUrl.isNotEmpty) {
-      return envBaseUrl;
+    try {
+      final envBaseUrl = dotenv.env['API_URL'];
+      if (envBaseUrl != null && envBaseUrl.isNotEmpty) {
+        return envBaseUrl;
+      }
+    } catch (_) {
+      // Tests may not initialize dotenv; fall back to the local API URL.
     }
 
     return fallbackApiUrl;
@@ -55,16 +59,19 @@ class ApiService {
   }
 
   // Get headers with auth token
-  Map<String, String> _getHeaders(Map<String, String>? additionalHeaders) {
+  Map<String, String> _getHeaders(
+    Map<String, String>? additionalHeaders, {
+    bool includeAuth = true,
+  }) {
     final headers = <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
       ...?additionalHeaders,
     };
-    
-    if (_authToken != null && _authToken!.isNotEmpty) {
+
+    if (includeAuth && _authToken != null && _authToken!.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_authToken';
     }
-    
+
     return headers;
   }
 
@@ -72,6 +79,7 @@ class ApiService {
     required String path,
     required Map<String, dynamic> body,
     Map<String, String>? headers,
+    bool includeAuth = true,
     Duration timeout = const Duration(seconds: 30),
   }) async {
     final resolvedUrl = _joinUrl(baseUrl, path);
@@ -79,7 +87,7 @@ class ApiService {
     final response = await _client
         .post(
           Uri.parse(resolvedUrl),
-          headers: _getHeaders(headers),
+          headers: _getHeaders(headers, includeAuth: includeAuth),
           body: jsonEncode(body),
         )
         .timeout(timeout);
@@ -90,6 +98,7 @@ class ApiService {
   Future<Map<String, dynamic>> getJson({
     required String path,
     Map<String, String>? headers,
+    bool includeAuth = true,
     Duration timeout = const Duration(seconds: 30),
   }) async {
     final resolvedUrl = _joinUrl(baseUrl, path);
@@ -97,7 +106,7 @@ class ApiService {
     final response = await _client
         .get(
           Uri.parse(resolvedUrl),
-          headers: _getHeaders(headers),
+          headers: _getHeaders(headers, includeAuth: includeAuth),
         )
         .timeout(timeout);
 
@@ -108,6 +117,7 @@ class ApiService {
     required String path,
     required Map<String, dynamic> body,
     Map<String, String>? headers,
+    bool includeAuth = true,
     Duration timeout = const Duration(seconds: 30),
   }) async {
     final resolvedUrl = _joinUrl(baseUrl, path);
@@ -115,7 +125,7 @@ class ApiService {
     final response = await _client
         .patch(
           Uri.parse(resolvedUrl),
-          headers: _getHeaders(headers),
+          headers: _getHeaders(headers, includeAuth: includeAuth),
           body: jsonEncode(body),
         )
         .timeout(timeout);
@@ -127,6 +137,7 @@ class ApiService {
     required String path,
     required Map<String, dynamic> body,
     Map<String, String>? headers,
+    bool includeAuth = true,
     Duration timeout = const Duration(seconds: 30),
   }) async {
     final resolvedUrl = _joinUrl(baseUrl, path);
@@ -134,7 +145,7 @@ class ApiService {
     final response = await _client
         .put(
           Uri.parse(resolvedUrl),
-          headers: _getHeaders(headers),
+          headers: _getHeaders(headers, includeAuth: includeAuth),
           body: jsonEncode(body),
         )
         .timeout(timeout);
@@ -193,10 +204,7 @@ class ApiService {
   }) async {
     return postJson(
       path: '/auth/login',
-      body: {
-        'email': email,
-        'password': password,
-      },
+      body: {'email': email, 'password': password},
     );
   }
 
@@ -242,13 +250,12 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> updateLanguage(String languageCode) async {
-    return patchJson(
-      path: '/profile/update',
-      body: {'language': languageCode},
-    );
+    return patchJson(path: '/profile/update', body: {'language': languageCode});
   }
 
-  Future<Map<String, dynamic>> updateNotificationSettings(bool isEnabled) async {
+  Future<Map<String, dynamic>> updateNotificationSettings(
+    bool isEnabled,
+  ) async {
     return patchJson(
       path: '/profile/update',
       body: {'is_notification_enabled': isEnabled},
@@ -269,35 +276,68 @@ class ApiService {
     return _parsePaginatedList(response, RoomModel.fromJson);
   }
 
+  Future<RoomModel> getRoomByCode(String code) async {
+    final response = await getJson(
+      path: '/rooms?code=${Uri.encodeComponent(code)}',
+      includeAuth: false,
+    );
+
+    final dynamic data = response['data'];
+    if (data is Map<String, dynamic>) {
+      return RoomModel.fromJson(data);
+    }
+
+    return RoomModel.fromJson(response);
+  }
+
   // ─── Artifacts ──────────────────────────────────────────────────────────────
 
   Future<List<Artifact>> getRoomArtifacts(String roomId) async {
-    final response = await postJson(
-      path: '/artifacts/all',
-      body: {
-        'page': 1,
-        'limit': 200,
-        'filters': {'roomId': roomId},
-      },
-    );
-    final list = _parsePaginatedList(response, Artifact.fromJson);
-    list.sort((a, b) => a.orderNo.compareTo(b.orderNo));
-    return list;
+    Future<List<Artifact>> fetchWithFilters(
+      Map<String, dynamic> filters,
+    ) async {
+      final response = await postJson(
+        path: '/artifacts/all',
+        // Server validates max limit = 100, keep under that to avoid 400 errors
+        body: {'page': 1, 'limit': 100, 'filters': filters},
+      );
+      final list = _parsePaginatedList(response, Artifact.fromJson);
+      list.sort((a, b) => a.orderNo.compareTo(b.orderNo));
+      return list;
+    }
+
+    try {
+      return await fetchWithFilters({'roomId': roomId});
+    } on ApiException catch (e) {
+      if (e.statusCode != 400) rethrow;
+
+      try {
+        return await fetchWithFilters({'room_id': roomId});
+      } on ApiException catch (e2) {
+        if (e2.statusCode != 400) rethrow;
+        return fetchWithFilters({'roomCode': roomId});
+      }
+    }
   }
 
   List<T> _parsePaginatedList<T>(
     Map<String, dynamic> response,
     T Function(Map<String, dynamic>) fromJson,
   ) {
-    final data = response['data'];
+    // Normalize: some endpoints return { items: [...] } at top-level,
+    // others return { data: { items: [...] } } or { data: [...] }.
+    final dynamic data = response['data'] ?? response;
     List<dynamic>? items;
+
     if (data is List) {
       items = data;
     } else if (data is Map<String, dynamic>) {
       final inner = data['items'] ?? data['data'] ?? data['results'];
       if (inner is List) items = inner;
     }
-    return items?.whereType<Map<String, dynamic>>().map(fromJson).toList() ?? [];
+
+    return items?.whereType<Map<String, dynamic>>().map(fromJson).toList() ??
+        [];
   }
 
   // ─── Events ─────────────────────────────────────────────────────────────────
@@ -305,13 +345,15 @@ class ApiService {
   Future<List<Event>> getEvents() async {
     // getJson returns a Map<String, dynamic>
     final response = await getJson(path: '/admin/events');
-    
+
     final dynamic data = response['data'];
 
     if (data is List) {
-      return data.map((json) => Event.fromJson(json as Map<String, dynamic>)).toList();
+      return data
+          .map((json) => Event.fromJson(json as Map<String, dynamic>))
+          .toList();
     }
-    
+
     return [];
   }
 
