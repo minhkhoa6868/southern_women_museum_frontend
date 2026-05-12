@@ -38,10 +38,14 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.6.0
   flutter_dotenv: ^6.0.1
+<<<<<<< HEAD
   google_fonts: ^8.0.2
   shared_preferences: ^2.2.2
   provider: ^6.1.5+1
   intl: ^0.20.2
+=======
+  supabase_flutter: ^2.12.4
+>>>>>>> feat/quiz
 
 dev_dependencies:
   flutter_test:
