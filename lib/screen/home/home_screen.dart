@@ -137,10 +137,7 @@ class _ArtifactsSection extends StatelessWidget {
           children: [
             Icon(Icons.star_rounded, color: primary, size: 17),
             const SizedBox(width: 7),
-            Text(
-              'Key Features',
-              style: AppTextStyles.h6(textColor)
-            ),
+            Text('Key Features', style: AppTextStyles.h6(textColor)),
           ],
         ),
 
@@ -182,9 +179,7 @@ class _ArtifactsSection extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: primary.withValues(alpha: 0.2),
-                      ),
+                      border: Border.all(color: primary.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,10 +192,13 @@ class _ArtifactsSection extends StatelessWidget {
                             height: 170,
                             width: double.infinity,
                             child:
-                                artifact.imgUrl != null &&
-                                    artifact.imgUrl!.isNotEmpty
+                                (artifact.presignedImgUrl != null &&
+                                        artifact.presignedImgUrl!.isNotEmpty) ||
+                                    (artifact.imgUrl != null &&
+                                        artifact.imgUrl!.isNotEmpty)
                                 ? Image.network(
-                                    artifact.imgUrl!,
+                                    artifact.presignedImgUrl ??
+                                        artifact.imgUrl!,
                                     fit: BoxFit.cover,
                                     errorBuilder:
                                         (context, error, stackTrace) =>
@@ -212,14 +210,15 @@ class _ArtifactsSection extends StatelessWidget {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 artifact.name,
                                 style: AppTextStyles.p(textColor),
-                                maxLines: 2,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 5),
@@ -241,7 +240,9 @@ class _ArtifactsSection extends StatelessWidget {
                                   Expanded(
                                     child: Text(
                                       artifact.roomName ?? '',
-                                      style: AppTextStyles.s1(textColor.withValues(alpha: 0.6)),
+                                      style: AppTextStyles.s1(
+                                        textColor.withValues(alpha: 0.6),
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -598,10 +599,7 @@ class _NewsSection extends StatelessWidget {
               children: [
                 Icon(Icons.newspaper_rounded, color: primary, size: 17),
                 const SizedBox(width: 7),
-                Text(
-                  'Events & News',
-                  style: AppTextStyles.h6(textColor)
-                ),
+                Text('Events & News', style: AppTextStyles.h6(textColor)),
               ],
             ),
             Container(
@@ -611,8 +609,10 @@ class _NewsSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                isLoading ? '…' : '${events.length > 2 ? 2 : events.length} active',
-                style: AppTextStyles.p(primary)
+                isLoading
+                    ? '…'
+                    : '${events.length > 2 ? 2 : events.length} active',
+                style: AppTextStyles.p(primary),
               ),
             ),
           ],
@@ -763,7 +763,7 @@ class _NewsItem extends StatelessWidget {
                       child: Image.network(
                         event.imageUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, stackTrace) => Container(
+                        errorBuilder: (context, error, stackTrace) => Container(
                           color: const Color(0xFF1E1710),
                           child: const Icon(
                             Icons.article_outlined,
@@ -793,7 +793,9 @@ class _NewsItem extends StatelessWidget {
                         // Status badge
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -811,10 +813,7 @@ class _NewsItem extends StatelessWidget {
                         const SizedBox(height: 12),
 
                         // Title
-                        Text(
-                          event.title,
-                          style: AppTextStyles.h5(textColor),
-                        ),
+                        Text(event.title, style: AppTextStyles.h5(textColor)),
                         const SizedBox(height: 8),
 
                         // Date
@@ -829,7 +828,8 @@ class _NewsItem extends StatelessWidget {
                             Text(
                               event.formattedDate,
                               style: AppTextStyles.p(
-                                  textColor.withValues(alpha: 0.6)),
+                                textColor.withValues(alpha: 0.6),
+                              ),
                             ),
                           ],
                         ),
@@ -837,8 +837,9 @@ class _NewsItem extends StatelessWidget {
 
                         // Divider
                         Divider(
-                            color: textColor.withValues(alpha: 0.1),
-                            height: 1),
+                          color: textColor.withValues(alpha: 0.1),
+                          height: 1,
+                        ),
                         const SizedBox(height: 16),
 
                         // Description

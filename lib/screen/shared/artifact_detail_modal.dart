@@ -65,27 +65,11 @@ class ArtifactDetailModal extends StatelessWidget {
                         width: double.infinity,
                         height: 350,
                         color: Colors.black.withValues(alpha: 0.3),
-                        child:
-                            artifact.imgUrl != null &&
-                                artifact.imgUrl!.isNotEmpty
-                            ? Image.network(
-                                artifact.imgUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, _) => Center(
-                                  child: Icon(
-                                    Icons.image_outlined,
-                                    size: 48,
-                                    color: textColor.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                              )
-                            : Center(
-                                child: Icon(
-                                  Icons.image_outlined,
-                                  size: 48,
-                                  color: textColor.withValues(alpha: 0.3),
-                                ),
-                              ),
+                        child: _ArtifactNetworkImage(
+                          primaryUrl: artifact.presignedImgUrl,
+                          fallbackUrl: artifact.imgUrl,
+                          textColor: textColor,
+                        ),
                       ),
                       Positioned(
                         right: 16,
@@ -114,7 +98,12 @@ class ArtifactDetailModal extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(artifact.name, style: AppTextStyles.h3(textColor)),
+                        Text(
+                          artifact.name,
+                          style: AppTextStyles.h3(textColor),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         const SizedBox(height: 10),
                         Row(
                           children: [
@@ -141,6 +130,8 @@ class ArtifactDetailModal extends StatelessWidget {
                                     ? artifact.roomName!
                                     : locationLabel,
                                 style: AppTextStyles.h5(textColor),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -158,6 +149,8 @@ class ArtifactDetailModal extends StatelessWidget {
                           style: AppTextStyles.h6(
                             textColor.withValues(alpha: 0.75),
                           ),
+                          maxLines: 10,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 24),
                       ],
@@ -168,6 +161,78 @@ class ArtifactDetailModal extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ArtifactNetworkImage extends StatefulWidget {
+  const _ArtifactNetworkImage({
+    required this.primaryUrl,
+    required this.fallbackUrl,
+    required this.textColor,
+  });
+
+  final String? primaryUrl;
+  final String? fallbackUrl;
+  final Color textColor;
+
+  @override
+  State<_ArtifactNetworkImage> createState() => _ArtifactNetworkImageState();
+}
+
+class _ArtifactNetworkImageState extends State<_ArtifactNetworkImage> {
+  late String? _currentUrl;
+  bool _usedFallback = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUrl =
+        _normalize(widget.primaryUrl) ?? _normalize(widget.fallbackUrl);
+  }
+
+  String? _normalize(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_currentUrl == null) {
+      return _buildFallbackIcon();
+    }
+
+    return Image.network(
+      _currentUrl!,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('Artifact image failed: url=$_currentUrl error=$error');
+
+        final fallback = _normalize(widget.fallbackUrl);
+        if (!_usedFallback && fallback != null && fallback != _currentUrl) {
+          _usedFallback = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _currentUrl = fallback;
+              });
+            }
+          });
+        }
+
+        return _buildFallbackIcon();
+      },
+    );
+  }
+
+  Widget _buildFallbackIcon() {
+    return Center(
+      child: Icon(
+        Icons.image_outlined,
+        size: 48,
+        color: widget.textColor.withValues(alpha: 0.3),
       ),
     );
   }

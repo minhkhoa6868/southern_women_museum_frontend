@@ -10,6 +10,7 @@ class Artifact {
     required this.descriptionEn,
     required this.orderNo,
     this.imgUrl,
+    this.presignedImgUrl,
     required this.positionX,
     required this.positionY,
     this.historyDate,
@@ -23,6 +24,7 @@ class Artifact {
   final String descriptionEn;
   final int orderNo;
   final String? imgUrl;
+  final String? presignedImgUrl;
   final double positionX;
   final double positionY;
   final DateTime? historyDate;
@@ -46,6 +48,7 @@ class Artifact {
           .toString(),
       orderNo: ((json['order_no'] ?? json['orderNo'] ?? 0) as num).toInt(),
       imgUrl: (json['img_url'] ?? json['imgUrl'])?.toString(),
+      presignedImgUrl: (json['presigned_img_url'] ?? json['presignedImgUrl'])?.toString(),
       positionX: ((json['position_x'] ?? json['positionX'] ?? 0.5) as num)
           .toDouble(),
       positionY: ((json['position_y'] ?? json['positionY'] ?? 0.5) as num)
