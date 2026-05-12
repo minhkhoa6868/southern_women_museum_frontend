@@ -334,6 +334,34 @@ class ApiService {
     }
   }
 
+  /// Fetch a list of random artifacts from the server.
+  ///
+  /// The backend may expose `/artifacts/random` which returns a JSON array.
+  /// We include the current language as a query parameter and an optional
+  /// `limit` to control how many items are returned.
+  Future<List<Artifact>> getRandomArtifacts({
+    String? language,
+  }) async {
+    final lang = language ?? _language;
+    final query = '?language=${Uri.encodeComponent(lang)}';
+
+    final response = await getJson(
+      path: '/artifacts/random$query',
+      includeAuth: true,
+    );
+
+    // response['data'] is expected to be a List of artifact JSON objects.
+    final dynamic data = response['data'];
+    if (data is List) {
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(Artifact.fromJson)
+          .toList();
+    }
+
+    return [];
+  }
+
   List<T> _parsePaginatedList<T>(
     Map<String, dynamic> response,
     T Function(Map<String, dynamic>) fromJson,

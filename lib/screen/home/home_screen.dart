@@ -5,6 +5,8 @@ import 'package:southern_women_museum/core/theme/text_styles.dart';
 import '../../core/constants/color_constants.dart';
 import '../../core/services/api_service.dart';
 import '../../models/event_model.dart';
+import '../../models/artifact_model.dart';
+import '../shared/artifact_detail_modal.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -19,6 +21,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Event> _events = [];
   bool _isLoadingEvents = true;
+  List<Artifact> _artifacts = [];
+  bool _isLoadingArtifacts = true;
   bool _loaded = false;
 
   @override
@@ -27,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_loaded) {
       _loaded = true;
       _loadEvents();
+      _loadRandomArtifacts();
     }
   }
 
@@ -40,6 +45,18 @@ class _HomeScreenState extends State<HomeScreen> {
       // keep empty list on error
     } finally {
       if (mounted) setState(() => _isLoadingEvents = false);
+    }
+  }
+
+  Future<void> _loadRandomArtifacts() async {
+    setState(() => _isLoadingArtifacts = true);
+    try {
+      final artifacts = await context.read<ApiService>().getRandomArtifacts();
+      if (mounted) setState(() => _artifacts = artifacts);
+    } catch (_) {
+      // ignore errors
+    } finally {
+      if (mounted) setState(() => _isLoadingArtifacts = false);
     }
   }
 
@@ -63,9 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
     Color textColor = isDark
         ? AppColors.textDarkTheme
         : AppColors.textLightTheme;
-    final surface = isDark
-        ? AppColors.backgroundDarkTheme
-        : AppColors.backgroundLightTheme;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -82,18 +96,171 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 14),
-                _MuseumInfoCard(
-                  primary: primary,
-                  textColor: textColor,
-                ),
+                _MuseumInfoCard(primary: primary, textColor: textColor),
                 const SizedBox(height: 14),
                 _NewsSection(events: _events, isLoading: _isLoadingEvents),
+                const SizedBox(height: 8),
+                _ArtifactsSection(
+                  artifacts: _artifacts,
+                  isLoading: _isLoadingArtifacts,
+                ),
                 const SizedBox(height: 8),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ArtifactsSection extends StatelessWidget {
+  const _ArtifactsSection({required this.artifacts, required this.isLoading});
+
+  final List<Artifact> artifacts;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark
+        ? AppColors.primaryDarkTheme
+        : AppColors.primaryLightTheme;
+    final textColor = isDark
+        ? AppColors.textDarkTheme
+        : AppColors.textLightTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.star_rounded, color: primary, size: 17),
+            const SizedBox(width: 7),
+            Text(
+              'Key Features',
+              style: AppTextStyles.h6(textColor)
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (artifacts.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'No artifacts',
+                style: AppTextStyles.p(textColor.withValues(alpha: 0.6)),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 280,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemBuilder: (context, index) {
+                final artifact = artifacts[index];
+                return GestureDetector(
+                  onTap: () => showArtifactDetailModal(
+                    context: context,
+                    artifact: artifact,
+                    primary: primary,
+                    textColor: textColor,
+                    locationLabel: artifact.roomName ?? 'Ao Dai Gallery',
+                  ),
+                  child: Container(
+                    width: 190,
+                    margin: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
+                          child: SizedBox(
+                            height: 170,
+                            width: double.infinity,
+                            child:
+                                artifact.imgUrl != null &&
+                                    artifact.imgUrl!.isNotEmpty
+                                ? Image.network(
+                                    artifact.imgUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              color: const Color(0xFF1E1710),
+                                            ),
+                                  )
+                                : Container(color: const Color(0xFF1E1710)),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                artifact.name,
+                                style: AppTextStyles.p(textColor),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                artifact.formattedDate.isNotEmpty
+                                    ? artifact.formattedDate
+                                    : '',
+                                style: AppTextStyles.s1(primary),
+                              ),
+                              const SizedBox(height: 5),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on_rounded,
+                                    size: 14,
+                                    color: textColor.withValues(alpha: 0.6),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      artifact.roomName ?? '',
+                                      style: AppTextStyles.s1(textColor.withValues(alpha: 0.6)),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              separatorBuilder: (context, index) => const SizedBox(width: 6),
+              itemCount: artifacts.length,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -128,7 +295,7 @@ class _HeroCard extends StatelessWidget {
             child: Image.asset(
               'assets/images/congbaotang.jpg',
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) =>
+              errorBuilder: (context, error, stackTrace) =>
                   Container(color: AppColors.backgroundDarkTheme),
             ),
           ),
@@ -346,18 +513,13 @@ class _Divider extends StatelessWidget {
 // ─── Museum info card ─────────────────────────────────────────────────────────
 
 class _MuseumInfoCard extends StatelessWidget {
-  const _MuseumInfoCard({
-    required this.primary,
-    required this.textColor,
-  });
+  const _MuseumInfoCard({required this.primary, required this.textColor});
 
   final Color primary;
   final Color textColor;
 
   @override
   Widget build(BuildContext context) {
-    const bodyStyle = TextStyle(fontSize: 13, height: 1.6);
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -375,7 +537,7 @@ class _MuseumInfoCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Southern Women\'s Museum',
-                style: AppTextStyles.h5(primary)
+                style: AppTextStyles.h5(primary),
               ),
             ],
           ),
@@ -385,7 +547,7 @@ class _MuseumInfoCard extends StatelessWidget {
             'was founded on April 29, 1985, growing from the Southern Women\'s '
             'Traditional House — built to preserve Vietnamese women\'s patriotic '
             'spirit and cultural traditions.',
-            style: AppTextStyles.p(textColor)
+            style: AppTextStyles.p(textColor),
           ),
           const SizedBox(height: 8),
           Text(
@@ -399,7 +561,7 @@ class _MuseumInfoCard extends StatelessWidget {
           Text(
             'Today, it remains a cherished destination for both local and '
             'international visitors.',
-            style: AppTextStyles.p(textColor)
+            style: AppTextStyles.p(textColor),
           ),
         ],
       ),
@@ -437,12 +599,8 @@ class _NewsSection extends StatelessWidget {
                 Icon(Icons.newspaper_rounded, color: primary, size: 17),
                 const SizedBox(width: 7),
                 Text(
-                  'News',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  'Evenents & News',
+                  style: AppTextStyles.h6(textColor)
                 ),
               ],
             ),
@@ -453,12 +611,8 @@ class _NewsSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                isLoading ? '…' : '${events.length} news',
-                style: TextStyle(
-                  color: primary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                ),
+                isLoading ? '…' : '${events.length} events',
+                style: AppTextStyles.p(primary)
               ),
             ),
           ],
@@ -476,8 +630,8 @@ class _NewsSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
               child: Text(
-                'No news available',
-                style: TextStyle(color: textColor.withValues(alpha: 0.45)),
+                'No events available',
+                style: AppTextStyles.p(textColor.withValues(alpha: 0.6)),
               ),
             ),
           )
@@ -524,7 +678,8 @@ class _NewsItem extends StatelessWidget {
                 ? Image.network(
                     event.imageUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _placeholder(),
+                    errorBuilder: (context, error, stackTrace) =>
+                        _placeholder(),
                   )
                 : _placeholder(),
           ),
