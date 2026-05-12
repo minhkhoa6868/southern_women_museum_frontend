@@ -13,14 +13,11 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<ThemeService>(
-          create: (_) => ThemeService(),
-        ),
-        Provider<ApiService>(
-          create: (_) => ApiService(),
-        ),
+        ChangeNotifierProvider<ThemeService>(create: (_) => ThemeService()),
+        Provider<ApiService>(create: (_) => ApiService()),
         ChangeNotifierProxyProvider<ApiService, AuthService>(
-          create: (_) => AuthService(apiService: ApiService()),
+          create: (context) =>
+              AuthService(apiService: context.read<ApiService>()),
           update: (_, apiService, previousAuthService) =>
               previousAuthService ?? AuthService(apiService: apiService),
         ),

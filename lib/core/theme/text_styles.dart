@@ -47,7 +47,7 @@ class AppTextStyles {
   // p
   static TextStyle p(Color color) => GoogleFonts.inter(
     fontSize: 12.0,
-    fontWeight: FontWeight.normal,
+    fontWeight: FontWeight.w700,
     color: color,
   );
 

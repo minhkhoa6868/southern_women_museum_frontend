@@ -1,0 +1,743 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:southern_women_museum/core/theme/text_styles.dart';
+
+import '../../core/constants/color_constants.dart';
+import '../../core/services/api_service.dart';
+import '../../models/artifact_model.dart';
+import '../../models/room_model.dart';
+
+class RoomScreen extends StatefulWidget {
+  const RoomScreen({
+    super.key,
+    required this.roomCode,
+    this.floorLabel,
+    this.onBack,
+    this.onMoveToRoom,
+  });
+
+  final String roomCode;
+  final String? floorLabel;
+  final VoidCallback? onBack;
+  final Function(String roomCode, String floorLabel)? onMoveToRoom;
+
+  @override
+  State<RoomScreen> createState() => _RoomScreenState();
+}
+
+class _RoomScreenState extends State<RoomScreen> {
+  late Future<_RoomPageData> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadRoom();
+  }
+
+  @override
+  void didUpdateWidget(RoomScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reload room data if roomCode changed
+    if (oldWidget.roomCode != widget.roomCode) {
+      _future = _loadRoom();
+    }
+  }
+
+  Future<_RoomPageData> _loadRoom() async {
+    debugPrint('RoomScreen._loadRoom -> loading room: ${widget.roomCode}');
+    final api = context.read<ApiService>();
+    final room = await api.getRoomByCode(widget.roomCode);
+    debugPrint('RoomScreen._loadRoom -> got room id: ${room.id}');
+    List<Artifact> artifacts = const [];
+    try {
+      artifacts = await api.getRoomArtifacts(room.id);
+    } catch (e) {
+      debugPrint('RoomScreen._loadRoom: primary artifacts fetch failed: $e');
+      // Try fallback using room code (some APIs expect filters by code)
+      try {
+        artifacts = await api.getRoomArtifacts(room.code);
+        debugPrint('RoomScreen._loadRoom: fallback fetch by code succeeded');
+      } catch (e2) {
+        debugPrint('Unable to load room artifacts (fallback): $e2');
+      }
+    }
+    return _RoomPageData(room: room, artifacts: artifacts);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = isDark
+        ? AppColors.primaryDarkTheme
+        : AppColors.primaryLightTheme;
+    final textColor = isDark
+        ? AppColors.textDarkTheme
+        : AppColors.textLightTheme;
+    final surface = isDark
+        ? AppColors.backgroundDarkTheme
+        : AppColors.backgroundLightTheme;
+
+    return Scaffold(
+      backgroundColor: surface,
+      body: SafeArea(
+        child: FutureBuilder<_RoomPageData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return _ErrorState(
+                message: snapshot.error.toString(),
+                onRetry: () {
+                  setState(() {
+                    _future = _loadRoom();
+                  });
+                },
+              );
+            }
+
+            final data = snapshot.data;
+            if (data == null) {
+              return _ErrorState(
+                message: 'Room not found.',
+                onRetry: () {
+                  setState(() {
+                    _future = _loadRoom();
+                  });
+                },
+              );
+            }
+
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _RoomHeader(
+                      roomCode: data.room.code,
+                      roomName: data.room.nameEn.isNotEmpty
+                          ? data.room.nameEn
+                          : data.room.name,
+                      floorLabel:
+                          widget.floorLabel ?? _inferFloorLabel(data.room.code),
+                      primary: primary,
+                      textColor: textColor,
+                      onBack: widget.onBack,
+                    ),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(20, 15, 20, 15),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        data.room.descriptionEn.isNotEmpty
+                            ? data.room.descriptionEn
+                            : data.room.description,
+                        style: AppTextStyles.p(
+                          textColor.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_rounded,
+                            size: 18,
+                            color: primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Tap a dot to view artifact details',
+                            style: AppTextStyles.p(
+                              textColor.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _RoomMapPanel(
+                        roomCode: data.room.code,
+                        artifacts: data.artifacts,
+                        primary: primary,
+                        textColor: textColor,
+                        onMoveToRoom: widget.onMoveToRoom,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info, size: 18, color: primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Artifacts in this Room',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: textColor,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (data.artifacts.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _EmptyArtifacts(textColor: textColor),
+                      )
+                    else
+                      ...data.artifacts.map(
+                        (artifact) => Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: _ArtifactCard(
+                            artifact: artifact,
+                            textColor: textColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _RoomHeader extends StatelessWidget {
+  const _RoomHeader({
+    required this.roomCode,
+    required this.roomName,
+    required this.floorLabel,
+    required this.primary,
+    required this.textColor,
+    this.onBack,
+  });
+
+  final String roomCode;
+  final String roomName;
+  final String floorLabel;
+  final Color primary;
+  final Color textColor;
+  final VoidCallback? onBack;
+
+  /// Get room-specific header colors based on room code
+  Map<String, Color> _getHeaderColors() {
+    // Default for others
+    return {'bg': primary.withValues(alpha: 0.1), 'accent': primary};
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _getHeaderColors();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(15, 40, 15, 15),
+      decoration: BoxDecoration(
+        color: colors['bg'],
+        border: Border(
+          bottom: BorderSide(color: textColor.withValues(alpha: 0.2)),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _BackButton(
+            primary: colors['accent']!,
+            textColor: textColor,
+            onTap: onBack,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  floorLabel,
+                  style: AppTextStyles.p(textColor.withValues(alpha: 0.6)),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 24,
+                      color: colors['accent'],
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '$roomName ($roomCode)',
+                        style: AppTextStyles.h4(textColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  const _BackButton({
+    required this.primary,
+    required this.textColor,
+    this.onTap,
+  });
+
+  final Color primary;
+  final Color textColor;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap ?? () => Navigator.of(context).maybePop(),
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: primary.withValues(alpha: 0.2),
+          border: Border.all(color: textColor.withValues(alpha: 0.2)),
+        ),
+        child: Icon(Icons.arrow_back_rounded, color: primary, size: 20),
+      ),
+    );
+  }
+}
+
+class _RoomMapPanel extends StatelessWidget {
+  const _RoomMapPanel({
+    required this.roomCode,
+    required this.artifacts,
+    required this.primary,
+    required this.textColor,
+    this.onMoveToRoom,
+  });
+
+  final String roomCode;
+  final List<Artifact> artifacts;
+  final Color primary;
+  final Color textColor;
+  final Function(String roomCode, String floorLabel)? onMoveToRoom;
+
+  /// Get room-specific artifact map height
+  double _getMapHeight() {
+    // Different room types have different map sizes based on design
+    if (roomCode.startsWith('R1.')) return 430; // Ảo dãi Gallery (larger)
+    if (roomCode == 'R2.1') return 450; // Ceramic Gallery floor 1 (largest)
+    if (roomCode == 'R2.2') return 380; // Ceramic Gallery floor 2 (medium)
+    if (roomCode == 'R3') return 340; // Weaving Gallery (smaller)
+    return 400; // default
+  }
+
+  /// Get the adjacent room and direction for the move button
+  Map<String, String>? _getAdjacentRoom() {
+    // Room navigation mapping
+    final adjacentRooms = {
+      'R1.1': {'code': 'R1.2', 'floor': '1ST FLOOR', 'direction': 'right'},
+      'R1.2': {'code': 'R1.1', 'floor': '1ST FLOOR', 'direction': 'left'},
+      'R2.1': {'code': 'R2.2', 'floor': '1ST FLOOR', 'direction': 'right'},
+      'R2.2': {'code': 'R2.1', 'floor': '1ST FLOOR', 'direction': 'left'},
+      // R3 (Weaving Gallery) does not have adjacent rooms
+    };
+    return adjacentRooms[roomCode];
+  }
+
+  /// Get room-specific button positioning
+  Map<String, double> _getButtonPosition(double height) {
+    // Room-specific button positions (top and side offsets)
+    final positions = {
+      'R1.1': {'top': height * 0.15, 'side': 18.0},
+      'R1.2': {'top': height * 0.10, 'side': 18.0},
+      'R2.1': {'top': height * 0.25, 'side': 18.0},
+      'R2.2': {'top': height * 0.72, 'side': 18.0},
+    };
+    return positions[roomCode] ?? {'top': height * 0.35, 'side': 18.0};
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...artifacts]
+      ..sort((a, b) => a.orderNo.compareTo(b.orderNo));
+
+    final adjacent = _getAdjacentRoom();
+    final isLeftDirection = adjacent?['direction'] == 'left';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: textColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: primary.withValues(alpha: 0.2)),
+      ),
+      child: SizedBox(
+        height: _getMapHeight(),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              right: 22,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: primary, width: 2),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final height = constraints.maxHeight;
+                    final buttonPos = _getButtonPosition(height);
+                    return Stack(
+                      children: [
+                        ...sorted.map((artifact) {
+                          final x = artifact.positionX.clamp(0.06, 0.94);
+                          final y = artifact.positionY.clamp(0.08, 0.92);
+                          return Positioned(
+                            left: width * x - 17,
+                            top: height * y - 17,
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: primary.withValues(alpha: 0.32),
+                                border: Border.all(
+                                  color: primary.withValues(alpha: 0.95),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Text(
+                                '${artifact.orderNo}',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          );
+                        }),
+                        if (adjacent != null)
+                          Positioned(
+                            right: isLeftDirection ? null : buttonPos['side'],
+                            left: isLeftDirection ? buttonPos['side'] : null,
+                            top: buttonPos['top'],
+                            child: GestureDetector(
+                              onTap: () {
+                                debugPrint(
+                                  'RoomMapPanel.onTap move -> ${adjacent['code']}',
+                                );
+                                if (onMoveToRoom != null) {
+                                  onMoveToRoom!(
+                                    adjacent['code']!,
+                                    adjacent['floor']!,
+                                  );
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primary.withValues(alpha: 0.38),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: primary.withValues(alpha: 0.95),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isLeftDirection)
+                                      Icon(
+                                        Icons.west,
+                                        color: primary,
+                                        size: 16,
+                                      ),
+                                    if (isLeftDirection)
+                                      const SizedBox(width: 8),
+                                    Text(
+                                      'Move to ${adjacent['code']}',
+                                      style: AppTextStyles.p(primary),
+                                    ),
+                                    if (!isLeftDirection)
+                                      const SizedBox(width: 8),
+                                    if (!isLeftDirection)
+                                      Icon(
+                                        Icons.east,
+                                        color: primary,
+                                        size: 16,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              top: 160,
+              bottom: 60,
+              child: RotatedBox(
+                quarterTurns: 1,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.west,
+                      color: textColor.withValues(alpha: 0.5),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      'Entrance',
+                      style: AppTextStyles.p(textColor.withValues(alpha: 0.6)),
+                    ),
+                    const SizedBox(width: 3),
+                    Icon(
+                      Icons.east,
+                      color: textColor.withValues(alpha: 0.5),
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArtifactCard extends StatelessWidget {
+  const _ArtifactCard({required this.artifact, required this.textColor});
+
+  final Artifact artifact;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            textColor.withValues(alpha: 0.11),
+            textColor.withValues(alpha: 0.06),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: textColor.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          _ArtifactThumbnail(url: artifact.imgUrl),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _ArtifactIndex(index: artifact.orderNo),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        artifact.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: textColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  artifact.formattedDate.isNotEmpty
+                      ? artifact.formattedDate
+                      : 'No date available',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: textColor.withValues(alpha: 0.65),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: textColor.withValues(alpha: 0.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArtifactThumbnail extends StatelessWidget {
+  const _ArtifactThumbnail({required this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      color: Colors.black.withValues(alpha: 0.08),
+      child: const Icon(Icons.image_outlined),
+    );
+
+    if (url == null || url!.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(width: 62, height: 62, child: fallback),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url!,
+        width: 78,
+        height: 78,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, _) =>
+            SizedBox(width: 78, height: 78, child: fallback),
+      ),
+    );
+  }
+}
+
+class _ArtifactIndex extends StatelessWidget {
+  const _ArtifactIndex({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        '$index',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Colors.white.withValues(alpha: 0.8),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyArtifacts extends StatelessWidget {
+  const _EmptyArtifacts({required this.textColor});
+
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: textColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: textColor.withValues(alpha: 0.12)),
+      ),
+      child: Text(
+        'No artifacts found for this room.',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: textColor.withValues(alpha: 0.65),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Unable to load room',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoomPageData {
+  const _RoomPageData({required this.room, required this.artifacts});
+
+  final RoomModel room;
+  final List<Artifact> artifacts;
+}
+
+String _inferFloorLabel(String roomCode) {
+  if (roomCode.startsWith('R3')) {
+    return 'GROUND FLOOR';
+  }
+
+  return '1ST FLOOR';
+}

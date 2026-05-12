@@ -39,14 +39,14 @@ class Artifact {
       roomId: (json['room_id'] ?? json['roomId'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
-      descriptionEn:
-          (json['description_en'] ?? json['descriptionEn'] ?? '').toString(),
+      descriptionEn: (json['description_en'] ?? json['descriptionEn'] ?? '')
+          .toString(),
       orderNo: ((json['order_no'] ?? json['orderNo'] ?? 0) as num).toInt(),
       imgUrl: (json['img_url'] ?? json['imgUrl'])?.toString(),
-      positionX:
-          ((json['position_x'] ?? json['positionX'] ?? 0.5) as num).toDouble(),
-      positionY:
-          ((json['position_y'] ?? json['positionY'] ?? 0.5) as num).toDouble(),
+      positionX: ((json['position_x'] ?? json['positionX'] ?? 0.5) as num)
+          .toDouble(),
+      positionY: ((json['position_y'] ?? json['positionY'] ?? 0.5) as num)
+          .toDouble(),
       historyDate: historyDate,
     );
   }

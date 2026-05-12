@@ -9,6 +9,7 @@ import '../../router/app_router.dart';
 import '../home/home_screen.dart';
 import '../map/map_screen.dart';
 import '../profile/profile_screen.dart';
+import '../room/room_screen.dart';
 import '../tour/tour_screen.dart';
 
 class LayoutScreen extends StatefulWidget {
@@ -22,6 +23,8 @@ class LayoutScreen extends StatefulWidget {
 
 class _LayoutScreenState extends State<LayoutScreen> {
   late String _currentRoute;
+  String? _selectedRoomCode;
+  String? _selectedRoomFloorLabel;
 
   @override
   void initState() {
@@ -56,27 +59,31 @@ class _LayoutScreenState extends State<LayoutScreen> {
             ? AppColors.backgroundDarkTheme
             : AppColors.backgroundLightTheme,
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const SizedBox(height: 12),
+          // child: Padding(
+          // padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const SizedBox(height: 12),
 
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    child: KeyedSubtree(
-                      key: ValueKey<String>(_currentRoute),
-                      child: _buildPageWidget(_currentRoute),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(
+                      _currentRoute == AppRouter.room
+                          ? '$_currentRoute-$_selectedRoomCode'
+                          : _currentRoute,
                     ),
+                    child: _buildPageWidget(_currentRoute),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          // ),
         ),
       ),
 
@@ -96,7 +103,40 @@ class _LayoutScreenState extends State<LayoutScreen> {
   Widget _buildPageWidget(String routeName) {
     switch (routeName) {
       case AppRouter.map:
-        return const MapScreen();
+        return MapScreen(
+          onRoomTap: (String code, String floorLabel) {
+            debugPrint(
+              'LayoutScreen.onRoomTap -> code=$code floor=$floorLabel',
+            );
+            setState(() {
+              _selectedRoomCode = code;
+              _selectedRoomFloorLabel = floorLabel;
+              _currentRoute = AppRouter.room;
+            });
+          },
+        );
+      case AppRouter.room:
+        if (_selectedRoomCode == null || _selectedRoomCode!.isEmpty) {
+          return const MapScreen();
+        }
+        return RoomScreen(
+          roomCode: _selectedRoomCode!,
+          floorLabel: _selectedRoomFloorLabel,
+          onBack: () {
+            setState(() {
+              _currentRoute = AppRouter.map;
+            });
+          },
+          onMoveToRoom: (newRoomCode, newFloorLabel) {
+            debugPrint(
+              'LayoutScreen.onMoveToRoom -> code=$newRoomCode floor=$newFloorLabel',
+            );
+            setState(() {
+              _selectedRoomCode = newRoomCode;
+              _selectedRoomFloorLabel = newFloorLabel;
+            });
+          },
+        );
       case AppRouter.tours:
         return const TourScreen();
       case AppRouter.profile:
@@ -112,6 +152,9 @@ class _LayoutScreenState extends State<LayoutScreen> {
   }
 
   int _getSelectedIndex(String routeName) {
+    if (routeName == AppRouter.room) {
+      return _items.indexWhere((item) => item.route == AppRouter.map);
+    }
     return _items.indexWhere((item) => item.route == routeName);
   }
 
@@ -119,6 +162,10 @@ class _LayoutScreenState extends State<LayoutScreen> {
     if (_currentRoute != routeName) {
       setState(() {
         _currentRoute = routeName;
+        if (routeName != AppRouter.room) {
+          _selectedRoomCode = null;
+          _selectedRoomFloorLabel = null;
+        }
       });
     }
   }
