@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:southern_women_museum/core/theme/text_styles.dart';
 
 import '../../core/constants/color_constants.dart';
+import '../../core/constants/floor_constants.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/language_service.dart';
 import '../../models/artifact_model.dart';
 import '../../models/room_model.dart';
+import '../shared/artifact_detail_modal.dart';
 
 class RoomScreen extends StatefulWidget {
   const RoomScreen({
@@ -46,16 +49,19 @@ class _RoomScreenState extends State<RoomScreen> {
   Future<_RoomPageData> _loadRoom() async {
     debugPrint('RoomScreen._loadRoom -> loading room: ${widget.roomCode}');
     final api = context.read<ApiService>();
-    final room = await api.getRoomByCode(widget.roomCode);
+    final languageService = context.read<LanguageService>();
+    final language = languageService.locale.languageCode;
+
+    final room = await api.getRoomByCode(widget.roomCode, language: language);
     debugPrint('RoomScreen._loadRoom -> got room id: ${room.id}');
     List<Artifact> artifacts = const [];
     try {
-      artifacts = await api.getRoomArtifacts(room.id);
+      artifacts = await api.getRoomArtifacts(room.id, language: language);
     } catch (e) {
       debugPrint('RoomScreen._loadRoom: primary artifacts fetch failed: $e');
       // Try fallback using room code (some APIs expect filters by code)
       try {
-        artifacts = await api.getRoomArtifacts(room.code);
+        artifacts = await api.getRoomArtifacts(room.code, language: language);
         debugPrint('RoomScreen._loadRoom: fallback fetch by code succeeded');
       } catch (e2) {
         debugPrint('Unable to load room artifacts (fallback): $e2');
@@ -68,15 +74,11 @@ class _RoomScreenState extends State<RoomScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primary = isDark
-        ? AppColors.primaryDarkTheme
-        : AppColors.primaryLightTheme;
+    final primary = theme.colorScheme.primary;
+    final surface = theme.colorScheme.surface;
     final textColor = isDark
         ? AppColors.textDarkTheme
         : AppColors.textLightTheme;
-    final surface = isDark
-        ? AppColors.backgroundDarkTheme
-        : AppColors.backgroundLightTheme;
 
     return Scaffold(
       backgroundColor: surface,
@@ -124,7 +126,8 @@ class _RoomScreenState extends State<RoomScreen> {
                           ? data.room.nameEn
                           : data.room.name,
                       floorLabel:
-                          widget.floorLabel ?? _inferFloorLabel(data.room.code),
+                          widget.floorLabel ??
+                          inferFloorLabelFromRoomCode(data.room.code),
                       primary: primary,
                       textColor: textColor,
                       onBack: widget.onBack,
@@ -172,6 +175,9 @@ class _RoomScreenState extends State<RoomScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: _RoomMapPanel(
                         roomCode: data.room.code,
+                        roomName: data.room.nameEn.isNotEmpty
+                            ? data.room.nameEn
+                            : data.room.name,
                         artifacts: data.artifacts,
                         primary: primary,
                         textColor: textColor,
@@ -187,10 +193,7 @@ class _RoomScreenState extends State<RoomScreen> {
                           const SizedBox(width: 8),
                           Text(
                             'Artifacts in this Room',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: textColor,
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: theme.textTheme.bodyLarge,
                           ),
                         ],
                       ),
@@ -207,7 +210,11 @@ class _RoomScreenState extends State<RoomScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                           child: _ArtifactCard(
                             artifact: artifact,
+                            primary: primary,
                             textColor: textColor,
+                            locationLabel: data.room.nameEn.isNotEmpty
+                                ? data.room.nameEn
+                                : data.room.name,
                           ),
                         ),
                       ),
@@ -334,6 +341,7 @@ class _BackButton extends StatelessWidget {
 class _RoomMapPanel extends StatelessWidget {
   const _RoomMapPanel({
     required this.roomCode,
+    required this.roomName,
     required this.artifacts,
     required this.primary,
     required this.textColor,
@@ -341,6 +349,7 @@ class _RoomMapPanel extends StatelessWidget {
   });
 
   final String roomCode;
+  final String roomName;
   final List<Artifact> artifacts;
   final Color primary;
   final Color textColor;
@@ -360,10 +369,26 @@ class _RoomMapPanel extends StatelessWidget {
   Map<String, String>? _getAdjacentRoom() {
     // Room navigation mapping
     final adjacentRooms = {
-      'R1.1': {'code': 'R1.2', 'floor': '1ST FLOOR', 'direction': 'right'},
-      'R1.2': {'code': 'R1.1', 'floor': '1ST FLOOR', 'direction': 'left'},
-      'R2.1': {'code': 'R2.2', 'floor': '1ST FLOOR', 'direction': 'right'},
-      'R2.2': {'code': 'R2.1', 'floor': '1ST FLOOR', 'direction': 'left'},
+      'R1.1': {
+        'code': 'R1.2',
+        'floor': FloorLabels.firstFloor,
+        'direction': 'right',
+      },
+      'R1.2': {
+        'code': 'R1.1',
+        'floor': FloorLabels.firstFloor,
+        'direction': 'left',
+      },
+      'R2.1': {
+        'code': 'R2.2',
+        'floor': FloorLabels.firstFloor,
+        'direction': 'right',
+      },
+      'R2.2': {
+        'code': 'R2.1',
+        'floor': FloorLabels.firstFloor,
+        'direction': 'left',
+      },
       // R3 (Weaving Gallery) does not have adjacent rooms
     };
     return adjacentRooms[roomCode];
@@ -379,6 +404,57 @@ class _RoomMapPanel extends StatelessWidget {
       'R2.2': {'top': height * 0.72, 'side': 18.0},
     };
     return positions[roomCode] ?? {'top': height * 0.35, 'side': 18.0};
+  }
+
+  /// Compute entrance placement depending on room code and canvas size
+  Map<String, dynamic> _getEntrancePlacement(double width, double height) {
+    // Only show entrance for specific rooms. Other rooms return show:false.
+    if (roomCode == 'R1.1') {
+      // Right-side vertical label
+      return {
+        'show': true,
+        'right': 8.0,
+        'top': height * 0.5,
+        'quarterTurns': 1,
+      };
+    }
+
+    if (roomCode == 'R2.1') {
+      // Bottom-center horizontal label
+      return {
+        'show': true,
+        'bottom': 12.0,
+        'left': (width * 0.5) - 60.0,
+        'quarterTurns': 0,
+      };
+    }
+
+    if (roomCode == 'R3') {
+      // Bottom-center horizontal label for R3
+      return {
+        'show': true,
+        'bottom': 12.0,
+        'left': (width * 0.5) - 10.0,
+        'quarterTurns': 0,
+      };
+    }
+
+    return {'show': false};
+  }
+
+  void _showArtifactDetails(
+    BuildContext context,
+    Artifact artifact,
+    Color primary,
+    Color textColor,
+  ) {
+    showArtifactDetailModal(
+      context: context,
+      artifact: artifact,
+      primary: primary,
+      textColor: textColor,
+      locationLabel: roomName,
+    );
   }
 
   @override
@@ -402,7 +478,6 @@ class _RoomMapPanel extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              right: 22,
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
@@ -421,27 +496,28 @@ class _RoomMapPanel extends StatelessWidget {
                           return Positioned(
                             left: width * x - 17,
                             top: height * y - 17,
-                            child: Container(
-                              width: 34,
-                              height: 34,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: primary.withValues(alpha: 0.32),
-                                border: Border.all(
-                                  color: primary.withValues(alpha: 0.95),
-                                  width: 2,
+                            child: GestureDetector(
+                              onTap: () {
+                                _showArtifactDetails(
+                                  context,
+                                  artifact,
+                                  primary,
+                                  textColor,
+                                );
+                              },
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: primary.withValues(alpha: 0.3),
+                                  border: Border.all(color: primary, width: 2),
                                 ),
-                              ),
-                              child: Text(
-                                '${artifact.orderNo}',
-                                style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.9,
-                                      ),
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                child: Text(
+                                  '${artifact.orderNo}',
+                                  style: AppTextStyles.p(primary),
+                                ),
                               ),
                             ),
                           );
@@ -504,40 +580,91 @@ class _RoomMapPanel extends StatelessWidget {
                               ),
                             ),
                           ),
+                        // Entrance placement (per-room) — only show for certain rooms
+                        () {
+                          final placement = _getEntrancePlacement(
+                            width,
+                            height,
+                          );
+                          if (!(placement['show'] == true)) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Positioned(
+                            left: placement.containsKey('left')
+                                ? placement['left'] as double
+                                : null,
+                            right: placement.containsKey('right')
+                                ? placement['right'] as double
+                                : null,
+                            top: placement.containsKey('top')
+                                ? placement['top'] as double
+                                : null,
+                            bottom: placement.containsKey('bottom')
+                                ? placement['bottom'] as double
+                                : null,
+                            child: (placement['quarterTurns'] as int? ?? 0) == 0
+                                ? Row(
+                                    children: [
+                                      Icon(
+                                        Icons.west,
+                                        color: textColor.withValues(alpha: 0.5),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'Entrance',
+                                        style: AppTextStyles.p(
+                                          textColor.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Icon(
+                                        Icons.east,
+                                        color: textColor.withValues(alpha: 0.5),
+                                        size: 18,
+                                      ),
+                                    ],
+                                  )
+                                : RotatedBox(
+                                    quarterTurns:
+                                        placement['quarterTurns'] as int,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.west,
+                                          color: textColor.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          'Entrance',
+                                          style: AppTextStyles.p(
+                                            textColor.withValues(alpha: 0.6),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Icon(
+                                          Icons.east,
+                                          color: textColor.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          size: 18,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                          );
+                        }(),
                       ],
                     );
                   },
                 ),
               ),
             ),
-            Positioned(
-              right: 0,
-              top: 160,
-              bottom: 60,
-              child: RotatedBox(
-                quarterTurns: 1,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.west,
-                      color: textColor.withValues(alpha: 0.5),
-                      size: 18,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      'Entrance',
-                      style: AppTextStyles.p(textColor.withValues(alpha: 0.6)),
-                    ),
-                    const SizedBox(width: 3),
-                    Icon(
-                      Icons.east,
-                      color: textColor.withValues(alpha: 0.5),
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // Entrance labels are handled inside the LayoutBuilder per-room.
           ],
         ),
       ),
@@ -546,67 +673,84 @@ class _RoomMapPanel extends StatelessWidget {
 }
 
 class _ArtifactCard extends StatelessWidget {
-  const _ArtifactCard({required this.artifact, required this.textColor});
+  const _ArtifactCard({
+    required this.artifact,
+    required this.primary,
+    required this.textColor,
+    required this.locationLabel,
+  });
 
   final Artifact artifact;
+  final Color primary;
   final Color textColor;
+  final String locationLabel;
+
+  void _showArtifactDetails(BuildContext context) {
+    showArtifactDetailModal(
+      context: context,
+      artifact: artifact,
+      primary: primary,
+      textColor: textColor,
+      locationLabel: locationLabel,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            textColor.withValues(alpha: 0.11),
-            textColor.withValues(alpha: 0.06),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: textColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          _ArtifactThumbnail(url: artifact.imgUrl),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showArtifactDetails(context),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: primary.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              _ArtifactThumbnail(url: artifact.imgUrl),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _ArtifactIndex(index: artifact.orderNo),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        artifact.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: textColor,
-                          fontWeight: FontWeight.w800,
+                    Row(
+                      children: [
+                        _ArtifactIndex(
+                          index: artifact.orderNo,
+                          primary: primary,
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            artifact.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.h6(textColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      artifact.formattedDate.isNotEmpty
+                          ? artifact.formattedDate
+                          : 'No date available',
+                      style: AppTextStyles.p(primary),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  artifact.formattedDate.isNotEmpty
-                      ? artifact.formattedDate
-                      : 'No date available',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: textColor.withValues(alpha: 0.65),
-                  ),
-                ),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: textColor.withValues(alpha: 0.6),
+              ),
+            ],
           ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: textColor.withValues(alpha: 0.5),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -638,7 +782,7 @@ class _ArtifactThumbnail extends StatelessWidget {
         width: 78,
         height: 78,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, _) =>
+        errorBuilder: (context, error, stackTrace) =>
             SizedBox(width: 78, height: 78, child: fallback),
       ),
     );
@@ -646,9 +790,10 @@ class _ArtifactThumbnail extends StatelessWidget {
 }
 
 class _ArtifactIndex extends StatelessWidget {
-  const _ArtifactIndex({required this.index});
+  const _ArtifactIndex({required this.index, required this.primary});
 
   final int index;
+  final Color primary;
 
   @override
   Widget build(BuildContext context) {
@@ -658,14 +803,10 @@ class _ArtifactIndex extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+        color: primary.withValues(alpha: 0.3),
+        border: Border.all(color: primary),
       ),
-      child: Text(
-        '$index',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Colors.white.withValues(alpha: 0.8),
-        ),
-      ),
+      child: Text('$index', style: AppTextStyles.s1(primary)),
     );
   }
 }
@@ -732,12 +873,4 @@ class _RoomPageData {
 
   final RoomModel room;
   final List<Artifact> artifacts;
-}
-
-String _inferFloorLabel(String roomCode) {
-  if (roomCode.startsWith('R3')) {
-    return 'GROUND FLOOR';
-  }
-
-  return '1ST FLOOR';
 }

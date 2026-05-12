@@ -27,6 +27,7 @@ class ApiService {
   final http.Client _client;
   final String baseUrl;
   String? _authToken;
+  String _language = 'en';
 
   static String _resolveBaseUrl(String? overrideBaseUrl) {
     if (overrideBaseUrl != null && overrideBaseUrl.isNotEmpty) {
@@ -57,6 +58,14 @@ class ApiService {
   void setAuthToken(String? token) {
     _authToken = token;
   }
+
+  // Set language for API requests
+  void setLanguage(String language) {
+    _language = language;
+  }
+
+  // Get current language
+  String getLanguage() => _language;
 
   // Get headers with auth token
   Map<String, String> _getHeaders(
@@ -276,9 +285,10 @@ class ApiService {
     return _parsePaginatedList(response, RoomModel.fromJson);
   }
 
-  Future<RoomModel> getRoomByCode(String code) async {
+  Future<RoomModel> getRoomByCode(String code, {String? language}) async {
+    final lang = language ?? _language;
     final response = await getJson(
-      path: '/rooms?code=${Uri.encodeComponent(code)}',
+      path: '/rooms?code=${Uri.encodeComponent(code)}&language=$lang',
       includeAuth: false,
     );
 
@@ -292,14 +302,18 @@ class ApiService {
 
   // ─── Artifacts ──────────────────────────────────────────────────────────────
 
-  Future<List<Artifact>> getRoomArtifacts(String roomId) async {
+  Future<List<Artifact>> getRoomArtifacts(
+    String roomId, {
+    String? language,
+  }) async {
+    final lang = language ?? _language;
     Future<List<Artifact>> fetchWithFilters(
       Map<String, dynamic> filters,
     ) async {
       final response = await postJson(
         path: '/artifacts/all',
         // Server validates max limit = 100, keep under that to avoid 400 errors
-        body: {'page': 1, 'limit': 100, 'filters': filters},
+        body: {'page': 1, 'limit': 100, 'filters': filters, 'language': lang},
       );
       final list = _parsePaginatedList(response, Artifact.fromJson);
       list.sort((a, b) => a.orderNo.compareTo(b.orderNo));
