@@ -4,6 +4,7 @@ class Artifact {
   const Artifact({
     required this.id,
     required this.roomId,
+    this.roomName,
     required this.name,
     required this.description,
     required this.descriptionEn,
@@ -16,6 +17,7 @@ class Artifact {
 
   final String id;
   final String roomId;
+  final String? roomName;
   final String name;
   final String description;
   final String descriptionEn;
@@ -37,6 +39,7 @@ class Artifact {
     return Artifact(
       id: (json['id'] ?? '').toString(),
       roomId: (json['room_id'] ?? json['roomId'] ?? '').toString(),
+      roomName: (json['room_name'] ?? json['roomName'])?.toString(),
       name: (json['name'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       descriptionEn: (json['description_en'] ?? json['descriptionEn'] ?? '')

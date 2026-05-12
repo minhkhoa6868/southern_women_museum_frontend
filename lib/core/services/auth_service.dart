@@ -5,7 +5,7 @@ import '../../models/auth_model.dart';
 
 class AuthService with ChangeNotifier {
   final ApiService apiService;
-  
+
   String? _accessToken;
   bool _isLoading = false;
   String? _error;
@@ -64,7 +64,7 @@ class AuthService with ChangeNotifier {
     if (_accessToken == null) {
       return false;
     }
-    
+
     try {
       _isLoading = true;
       _error = null;
@@ -72,7 +72,10 @@ class AuthService with ChangeNotifier {
 
       final response = await apiService.getCurrentUser();
       _currentUser = User.fromJson(response);
-      
+
+      // Update API service with user's language preference
+      apiService.setLanguage(_currentUser!.language);
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -95,7 +98,7 @@ class AuthService with ChangeNotifier {
       _error = 'Not authenticated';
       return false;
     }
-    
+
     try {
       _isLoading = true;
       _error = null;
@@ -107,9 +110,42 @@ class AuthService with ChangeNotifier {
         email: email,
         phone: phone,
       );
-      
+
       _currentUser = User.fromJson(response);
-      
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _extractErrorMessage(e.toString());
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Update user language preference
+  Future<bool> updateUserLanguage(String languageCode) async {
+    if (_accessToken == null) {
+      _error = 'Not authenticated';
+      return false;
+    }
+
+    if (_currentUser == null) {
+      _error = 'Current user not loaded';
+      return false;
+    }
+
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final response = await apiService.updateLanguage(languageCode);
+
+      // Update current user with new language
+      _currentUser = User.fromJson(response);
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -122,19 +158,13 @@ class AuthService with ChangeNotifier {
   }
 
   // Login
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      final response = await apiService.login(
-        email: email,
-        password: password,
-      );
+      final response = await apiService.login(email: email, password: password);
 
       final accessToken = response['access_token'] as String?;
       if (accessToken == null || accessToken.isEmpty) {
@@ -146,10 +176,10 @@ class AuthService with ChangeNotifier {
 
       _accessToken = accessToken;
       await _saveTokenToStorage(accessToken);
-      
+
       // Lấy thông tin user sau khi login thành công
       await getCurrentUser();
-      
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -204,7 +234,9 @@ class AuthService with ChangeNotifier {
   // Helper method to extract error message
   String _extractErrorMessage(String errorString) {
     if (errorString.contains('ApiException')) {
-      final match = RegExp(r'ApiException\(\d+\):\s*(.+)').firstMatch(errorString);
+      final match = RegExp(
+        r'ApiException\(\d+\):\s*(.+)',
+      ).firstMatch(errorString);
       if (match != null) {
         return match.group(1) ?? 'An error occurred';
       }

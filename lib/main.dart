@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'core/services/api_service.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/language_service.dart';
 import 'core/services/theme_service.dart';
 
 Future<void> main() async {
@@ -14,6 +15,9 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<ThemeService>(create: (_) => ThemeService()),
+        ChangeNotifierProvider<LanguageService>(
+          create: (_) => LanguageService(),
+        ),
         Provider<ApiService>(create: (_) => ApiService()),
         ChangeNotifierProxyProvider<ApiService, AuthService>(
           create: (context) =>

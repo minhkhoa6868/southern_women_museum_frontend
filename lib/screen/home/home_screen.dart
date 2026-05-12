@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:southern_women_museum/core/theme/text_styles.dart';
 import '../../core/constants/color_constants.dart';
 import '../../core/services/api_service.dart';
 import '../../models/event_model.dart';
@@ -54,6 +55,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = isDark
+        ? AppColors.primaryDarkTheme
+        : AppColors.primaryLightTheme;
+    Color textColor = isDark
+        ? AppColors.textDarkTheme
+        : AppColors.textLightTheme;
+    final surface = isDark
+        ? AppColors.backgroundDarkTheme
+        : AppColors.backgroundLightTheme;
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -64,14 +77,21 @@ class _HomeScreenState extends State<HomeScreen> {
             greeting: _getGreeting(),
             date: _getFormattedDate(),
           ),
-          const SizedBox(height: 14),
-          _MuseumInfoCard(),
-          const SizedBox(height: 14),
-          _NewsSection(
-            events: _events,
-            isLoading: _isLoadingEvents,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: [
+                const SizedBox(height: 14),
+                _MuseumInfoCard(
+                  primary: primary,
+                  textColor: textColor,
+                ),
+                const SizedBox(height: 14),
+                _NewsSection(events: _events, isLoading: _isLoadingEvents),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );
@@ -144,8 +164,11 @@ class _HeroCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.star_rate_rounded,
-                              size: 12, color: primary),
+                          Icon(
+                            Icons.star_rate_rounded,
+                            size: 12,
+                            color: primary,
+                          ),
                           const SizedBox(width: 5),
                           Text(
                             'GUIDE TO SOUTHERN WOMEN\'S MUSEUM',
@@ -165,10 +188,14 @@ class _HeroCard extends StatelessWidget {
                           shape: BoxShape.circle,
                           color: Colors.white.withValues(alpha: 0.18),
                           border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.35)),
+                            color: Colors.white.withValues(alpha: 0.35),
+                          ),
                         ),
-                        child: const Icon(Icons.play_arrow_rounded,
-                            color: Colors.white, size: 16),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ],
                   ),
@@ -234,23 +261,28 @@ class _StatsRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.38),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.14),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: IntrinsicHeight(
         child: Row(
           children: [
             _StatItem(
-                icon: Icons.people_alt_outlined, value: '500', label: 'Visitors today'),
+              icon: Icons.people_alt_outlined,
+              value: '500',
+              label: 'Visitors today',
+            ),
             _Divider(),
             _StatItem(
-                icon: Icons.grid_view_rounded, value: '3', label: 'Galleries Open'),
+              icon: Icons.grid_view_rounded,
+              value: '3',
+              label: 'Galleries Open',
+            ),
             _Divider(),
             _StatItem(
-                icon: Icons.access_time_rounded,
-                value: '7:30AM - 5PM',
-                label: 'Opening Hours'),
+              icon: Icons.access_time_rounded,
+              value: '7:30AM - 5PM',
+              label: 'Opening Hours',
+            ),
           ],
         ),
       ),
@@ -314,25 +346,24 @@ class _Divider extends StatelessWidget {
 // ─── Museum info card ─────────────────────────────────────────────────────────
 
 class _MuseumInfoCard extends StatelessWidget {
+  const _MuseumInfoCard({
+    required this.primary,
+    required this.textColor,
+  });
+
+  final Color primary;
+  final Color textColor;
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary =
-        isDark ? AppColors.primaryDarkTheme : AppColors.primaryLightTheme;
-    final textColor =
-        isDark ? AppColors.textDarkTheme : AppColors.textLightTheme;
-    final cardColor =
-        isDark ? const Color(0xFF1E1710) : AppColors.backgroundLightTheme;
-    final borderColor = primary.withValues(alpha: 0.15);
-
     const bodyStyle = TextStyle(fontSize: 13, height: 1.6);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: primary.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,11 +375,7 @@ class _MuseumInfoCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Southern Women\'s Museum',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTextStyles.h5(primary)
               ),
             ],
           ),
@@ -358,8 +385,7 @@ class _MuseumInfoCard extends StatelessWidget {
             'was founded on April 29, 1985, growing from the Southern Women\'s '
             'Traditional House — built to preserve Vietnamese women\'s patriotic '
             'spirit and cultural traditions.',
-            style: bodyStyle.copyWith(
-                color: textColor.withValues(alpha: 0.72)),
+            style: AppTextStyles.p(textColor)
           ),
           const SizedBox(height: 8),
           Text(
@@ -367,15 +393,13 @@ class _MuseumInfoCard extends StatelessWidget {
             'Nguyen Thi Thap (former President of the Vietnam Women\'s Union), '
             'established the Southern Women\'s History Research Group to document '
             'the history of Southern women\'s movement.',
-            style: bodyStyle.copyWith(
-                color: textColor.withValues(alpha: 0.72)),
+            style: AppTextStyles.p(textColor),
           ),
           const SizedBox(height: 8),
           Text(
             'Today, it remains a cherished destination for both local and '
             'international visitors.',
-            style: bodyStyle.copyWith(
-                color: textColor.withValues(alpha: 0.72)),
+            style: AppTextStyles.p(textColor)
           ),
         ],
       ),
@@ -394,10 +418,12 @@ class _NewsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary =
-        isDark ? AppColors.primaryDarkTheme : AppColors.primaryLightTheme;
-    final textColor =
-        isDark ? AppColors.textDarkTheme : AppColors.textLightTheme;
+    final primary = isDark
+        ? AppColors.primaryDarkTheme
+        : AppColors.primaryLightTheme;
+    final textColor = isDark
+        ? AppColors.textDarkTheme
+        : AppColors.textLightTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,8 +447,7 @@ class _NewsSection extends StatelessWidget {
               ],
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
               decoration: BoxDecoration(
                 color: primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
@@ -473,8 +498,9 @@ class _NewsItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor =
-        isDark ? AppColors.textDarkTheme : AppColors.textLightTheme;
+    final textColor = isDark
+        ? AppColors.textDarkTheme
+        : AppColors.textLightTheme;
     final cardColor = isDark ? const Color(0xFF1E1710) : Colors.white;
     final borderColor = isDark
         ? AppColors.primaryDarkTheme.withValues(alpha: 0.12)
@@ -488,8 +514,7 @@ class _NewsItem extends StatelessWidget {
         border: Border.all(color: borderColor),
       ),
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: SizedBox(
@@ -535,8 +560,7 @@ class _NewsItem extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        color: const Color(0xFF1E1710),
-        child: const Icon(Icons.article_outlined,
-            color: Colors.grey, size: 22),
-      );
+    color: const Color(0xFF1E1710),
+    child: const Icon(Icons.article_outlined, color: Colors.grey, size: 22),
+  );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/language_service.dart';
 import '../../core/services/theme_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -15,16 +16,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   bool _notificationsEnabled = true;
   String _selectedLanguage = 'English';
-  
+
   // Text editing controllers
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  
+
   // Form key
   late GlobalKey<FormState> _formKey;
-  
+
   // User data
   String _firstName = '';
   String _lastName = '';
@@ -54,27 +55,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
-    
+
     final authService = Provider.of<AuthService>(context, listen: false);
-    
+
     if (authService.currentUser == null) {
       await authService.getCurrentUser();
     }
-    
+
     if (mounted) {
       setState(() {
         _firstName = authService.currentUser?.firstName ?? 'David';
         _lastName = authService.currentUser?.lastName ?? 'Nguyen';
         _email = authService.currentUser?.email ?? 'davidnguyen@gmail.com';
         _phone = authService.currentUser?.phone ?? '';
-        _notificationsEnabled = authService.currentUser?.isNotificationEnabled ?? true;
-        _selectedLanguage = authService.currentUser?.language == 'vi' ? 'Vietnamese' : 'English';
-        
+        _notificationsEnabled =
+            authService.currentUser?.isNotificationEnabled ?? true;
+        _selectedLanguage = authService.currentUser?.language == 'vi'
+            ? 'Vietnamese'
+            : 'English';
+
         _firstNameController.text = _firstName;
         _lastNameController.text = _lastName;
         _emailController.text = _email;
         _phoneController.text = _phone;
-        
+
         _isLoading = false;
       });
     }
@@ -95,19 +99,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveChanges() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    
+
     setState(() => _isLoading = true);
-    
+
     final success = await authService.updateUser(
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       email: _emailController.text.trim(),
       phone: _phoneController.text.trim(),
     );
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
-      
+
       if (success) {
         setState(() {
           _firstName = _firstNameController.text.trim();
@@ -168,9 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
         child: Container(
@@ -211,7 +213,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Are you sure you want to leave?\nYou will need to log in again.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -227,13 +231,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         side: BorderSide(
-                          color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.2) ?? Colors.grey,
+                          color:
+                              Theme.of(context).textTheme.bodyLarge?.color
+                                  ?.withValues(alpha: 0.2) ??
+                              Colors.grey,
                         ),
                       ),
                       child: Text(
                         'Cancel',
                         style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -267,7 +276,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-    
+
     if (shouldSignOut == true) {
       await authService.logout();
       if (!mounted) return;
@@ -285,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
-    
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -299,16 +308,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 child: Row(
                   children: [
-                    Icon(Icons.person_outline,
-                        color: colorScheme.primary, size: 22),
+                    Icon(
+                      Icons.person_outline,
+                      color: colorScheme.primary,
+                      size: 22,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'My Profile',
-                      style: textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -358,14 +371,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: TextButton(
                 onPressed: _toggleEditMode,
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.edit_outlined, size: 16, color: colorScheme.primary),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: colorScheme.primary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Edit',
@@ -399,7 +419,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(ThemeData theme, ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildProfileHeader(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -422,10 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: colorScheme.primary,
-                    width: 3,
-                  ),
+                  border: Border.all(color: colorScheme.primary, width: 3),
                 ),
                 child: CircleAvatar(
                   backgroundColor: colorScheme.primary,
@@ -457,13 +478,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.email_outlined, size: 14, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.6)),
+                    Icon(
+                      Icons.email_outlined,
+                      size: 14,
+                      color: theme.textTheme.bodyLarge?.color?.withValues(
+                        alpha: 0.6,
+                      ),
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         _email,
                         style: textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
+                          color: theme.textTheme.bodyLarge?.color?.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                     ),
@@ -471,7 +500,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
@@ -479,7 +511,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified_outlined, size: 12, color: colorScheme.primary),
+                      Icon(
+                        Icons.verified_outlined,
+                        size: 12,
+                        color: colorScheme.primary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         _membership,
@@ -500,7 +536,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // FRAME - PERSONAL INFORMATION CONTENT
-  Widget _buildPersonalInfoFrame(ThemeData theme, TextTheme textTheme, ColorScheme colorScheme) {
+  Widget _buildPersonalInfoFrame(
+    ThemeData theme,
+    TextTheme textTheme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -516,7 +556,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // First Name & Last Name Row
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -526,7 +569,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               'FIRST NAME',
                               style: textTheme.bodySmall?.copyWith(
-                                color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                                color: theme.textTheme.bodyLarge?.color
+                                    ?.withValues(alpha: 0.5),
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1,
                               ),
@@ -534,7 +578,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.person_outline, size: 18, color: colorScheme.primary),
+                                Icon(
+                                  Icons.person_outline,
+                                  size: 18,
+                                  color: colorScheme.primary,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   _firstName,
@@ -554,15 +602,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Text(
                               'LAST NAME',
                               style: textTheme.bodySmall?.copyWith(
-                                color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                                color: theme.textTheme.bodyLarge?.color
+                                    ?.withValues(alpha: 0.5),
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Row( 
+                            Row(
                               children: [
-                                Icon(Icons.person_outline, size: 18, color: colorScheme.primary),
+                                Icon(
+                                  Icons.person_outline,
+                                  size: 18,
+                                  color: colorScheme.primary,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   _lastName,
@@ -581,14 +634,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildDivider(theme),
                 // Email Address
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'EMAIL ADDRESS',
                         style: textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                          color: theme.textTheme.bodyLarge?.color?.withValues(
+                            alpha: 0.5,
+                          ),
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1,
                         ),
@@ -596,7 +654,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.email_outlined, size: 16, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.6)),
+                          Icon(
+                            Icons.email_outlined,
+                            size: 16,
+                            color: theme.textTheme.bodyLarge?.color?.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             _email,
@@ -628,7 +692,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Text(
                                 'FIRST NAME',
                                 style: textTheme.bodySmall?.copyWith(
-                                  color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                                  color: theme.textTheme.bodyLarge?.color
+                                      ?.withValues(alpha: 0.5),
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1,
                                 ),
@@ -638,7 +703,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.2) ?? Colors.grey,
+                                    color:
+                                        theme.textTheme.bodyLarge?.color
+                                            ?.withValues(alpha: 0.2) ??
+                                        Colors.grey,
                                   ),
                                 ),
                                 child: TextFormField(
@@ -646,9 +714,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   style: textTheme.bodyLarge,
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
                                   ),
-                                  validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+                                  validator: (value) =>
+                                      (value == null || value.isEmpty)
+                                      ? 'Required'
+                                      : null,
                                 ),
                               ),
                             ],
@@ -662,7 +736,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Text(
                                 'LAST NAME',
                                 style: textTheme.bodySmall?.copyWith(
-                                  color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                                  color: theme.textTheme.bodyLarge?.color
+                                      ?.withValues(alpha: 0.5),
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1,
                                 ),
@@ -672,7 +747,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.2) ?? Colors.grey,
+                                    color:
+                                        theme.textTheme.bodyLarge?.color
+                                            ?.withValues(alpha: 0.2) ??
+                                        Colors.grey,
                                   ),
                                 ),
                                 child: TextFormField(
@@ -680,9 +758,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   style: textTheme.bodyLarge,
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
+                                    ),
                                   ),
-                                  validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
+                                  validator: (value) =>
+                                      (value == null || value.isEmpty)
+                                      ? 'Required'
+                                      : null,
                                 ),
                               ),
                             ],
@@ -697,7 +781,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           'EMAIL ADDRESS',
                           style: textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.5),
+                            color: theme.textTheme.bodyLarge?.color?.withValues(
+                              alpha: 0.5,
+                            ),
                             fontWeight: FontWeight.w600,
                             letterSpacing: 1,
                           ),
@@ -707,7 +793,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.2) ?? Colors.grey,
+                              color:
+                                  theme.textTheme.bodyLarge?.color?.withValues(
+                                    alpha: 0.2,
+                                  ) ??
+                                  Colors.grey,
                             ),
                           ),
                           child: TextFormField(
@@ -716,12 +806,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
                             ),
                             validator: (value) {
-                              if (value == null || value.isEmpty) return 'Email is required';
-                              final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-                              if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
+                              if (value == null || value.isEmpty)
+                                return 'Email is required';
+                              final emailRegex = RegExp(
+                                r'^[^@]+@[^@]+\.[^@]+$',
+                              );
+                              if (!emailRegex.hasMatch(value))
+                                return 'Enter a valid email';
                               return null;
                             },
                           ),
@@ -787,7 +884,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // FRAME - SETTINGS CONTENT (with icons)
-  Widget _buildSettingsFrame(ThemeData theme, TextTheme textTheme, ColorScheme colorScheme) {
+  Widget _buildSettingsFrame(
+    ThemeData theme,
+    TextTheme textTheme,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -803,7 +904,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Notifications
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            secondary: Icon(Icons.notifications_outlined, color: colorScheme.primary, size: 22),
+            secondary: Icon(
+              Icons.notifications_outlined,
+              color: colorScheme.primary,
+              size: 22,
+            ),
             title: Text('Notifications', style: textTheme.bodyLarge),
             value: _notificationsEnabled,
             onChanged: (value) {
@@ -819,7 +924,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Language
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: Icon(Icons.language_outlined, color: colorScheme.primary, size: 22),
+            leading: Icon(
+              Icons.language_outlined,
+              color: colorScheme.primary,
+              size: 22,
+            ),
             title: Text('Language', style: textTheme.bodyLarge),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -827,7 +936,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   _selectedLanguage,
                   style: textTheme.bodyMedium?.copyWith(
-                    color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
+                    color: theme.textTheme.bodyLarge?.color?.withValues(
+                      alpha: 0.6,
+                    ),
                   ),
                 ),
                 const Icon(Icons.chevron_right, size: 20),
@@ -862,20 +973,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Privacy Settings
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: Icon(Icons.lock_outlined, color: colorScheme.primary, size: 22),
+            leading: Icon(
+              Icons.lock_outlined,
+              color: colorScheme.primary,
+              size: 22,
+            ),
             title: Text('Privacy Settings', style: textTheme.bodyLarge),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () => _showComingSoonSnackBar(),
           ),
           _buildDivider(theme),
-          
+
           // Help & Support - with help icon
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            leading: Icon(Icons.help_outline, color: colorScheme.primary, size: 22),
+            leading: Icon(
+              Icons.help_outline,
+              color: colorScheme.primary,
+              size: 22,
+            ),
             title: Text('Help & Support', style: textTheme.bodyLarge),
             trailing: const Icon(Icons.chevron_right, size: 20),
-            onTap: () => _showHelpSupportDialog(),  // <-- ĐỔI CHỖ NÀY
+            onTap: () => _showHelpSupportDialog(), // <-- ĐỔI CHỖ NÀY
           ),
           const SizedBox(height: 8),
         ],
@@ -929,18 +1048,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             ListTile(
               title: const Text('English'),
-              trailing: _selectedLanguage == 'English' ? const Icon(Icons.check) : null,
-              onTap: () {
-                setState(() => _selectedLanguage = 'English');
+              trailing: _selectedLanguage == 'English'
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () async {
                 Navigator.pop(context);
+                await _changeLanguage('en', 'English');
               },
             ),
             ListTile(
               title: const Text('Vietnamese'),
-              trailing: _selectedLanguage == 'Vietnamese' ? const Icon(Icons.check) : null,
-              onTap: () {
-                setState(() => _selectedLanguage = 'Vietnamese');
+              trailing: _selectedLanguage == 'Vietnamese'
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () async {
                 Navigator.pop(context);
+                await _changeLanguage('vi', 'Vietnamese');
               },
             ),
           ],
@@ -949,155 +1072,211 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-void _showHelpSupportDialog() {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      title: Row(
-        children: [
-          Icon(Icons.help_outline, color: Theme.of(context).colorScheme.primary, size: 28),
-          const SizedBox(width: 8),
-          const Text('Help & Support'),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Divider(),
-          const SizedBox(height: 8),
-          // Email
-          InkWell(
-            onTap: () {
-              // Copy email hoặc mở email app
-              Navigator.pop(context);
-              _showSuccessSnackBar('Email copied!');
-            },
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.email_outlined, 
-                    color: Theme.of(context).colorScheme.primary, 
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Email Support',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      Text(
-                        'helper.woman.museum@gmail.com',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+  Future<void> _changeLanguage(
+    String languageCode,
+    String languageLabel,
+  ) async {
+    if (_selectedLanguage == languageLabel) {
+      return; // No change needed
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final languageService = Provider.of<LanguageService>(
+        context,
+        listen: false,
+      );
+
+      // Call backend to update user language
+      final success = await authService.updateUserLanguage(languageCode);
+
+      if (!mounted) return;
+
+      if (success) {
+        // Update local language state
+        setState(() {
+          _selectedLanguage = languageLabel;
+          _isLoading = false;
+        });
+
+        // Update app-wide language service
+        await languageService.setLanguage(languageCode);
+
+        _showSuccessSnackBar('Language changed to $languageLabel');
+      } else {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar(authService.error ?? 'Failed to change language');
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Error: ${e.toString()}');
+    }
+  }
+
+  void _showHelpSupportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(
+              Icons.help_outline,
+              color: Theme.of(context).colorScheme.primary,
+              size: 28,
             ),
-          ),
-          const SizedBox(height: 16),
-          // Phone
-          InkWell(
-            onTap: () {
-              // Copy phone hoặc gọi điện
-              Navigator.pop(context);
-              _showSuccessSnackBar('Phone number copied!');
-            },
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.phone_outlined, 
-                    color: Theme.of(context).colorScheme.primary, 
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Phone Support',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      Text(
-                        '0836 180 180',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Note
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.access_time_outlined, size: 16, color: Colors.amber[700]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Support available: Mon - Fri, 9:00 AM - 6:00 PM',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.amber[700],
+            const SizedBox(width: 8),
+            const Text('Help & Support'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(),
+            const SizedBox(height: 8),
+            // Email
+            InkWell(
+              onTap: () {
+                // Copy email hoặc mở email app
+                Navigator.pop(context);
+                _showSuccessSnackBar('Email copied!');
+              },
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.email_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Email Support',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).textTheme.bodyLarge?.color
+                                ?.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        Text(
+                          'helper.woman.museum@gmail.com',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 16),
+            // Phone
+            InkWell(
+              onTap: () {
+                // Copy phone hoặc gọi điện
+                Navigator.pop(context);
+                _showSuccessSnackBar('Phone number copied!');
+              },
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.phone_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Phone Support',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).textTheme.bodyLarge?.color
+                                ?.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        Text(
+                          '0836 180 180',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Note
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.access_time_outlined,
+                    size: 16,
+                    color: Colors.amber[700],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Support available: Mon - Fri, 9:00 AM - 6:00 PM',
+                      style: TextStyle(fontSize: 11, color: Colors.amber[700]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.primary,
+            ),
+            child: const Text('Close'),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.primary,
-          ),
-          child: const Text('Close'),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
   void _showComingSoonSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(
