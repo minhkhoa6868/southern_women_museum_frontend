@@ -92,7 +92,6 @@ import 'core/services/language_service.dart';
 import 'core/services/theme_service.dart';
 import 'features/quiz/screens/quiz_entry_screen.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -115,20 +114,18 @@ void main() async {
       child: const MyApp(),
     ),
   );
-
-  runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+// class MyApp extends StatelessWidget {
+//   const MyApp({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: QuizEntryScreen(
-        roomId: '2ead762f-d883-47cc-944b-750f10764b6f',
-        userId: 'b5238bdc-f73c-4cdf-9721-94319cd82954',
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       home: QuizEntryScreen(
+//         roomId: '2ead762f-d883-47cc-944b-750f10764b6f',
+//         userId: 'b5238bdc-f73c-4cdf-9721-94319cd82954',
+//       ),
+//     );
+//   }
+// }
