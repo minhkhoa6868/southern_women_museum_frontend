@@ -39,10 +39,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoadingEvents = true);
     try {
       // Use the singleton ApiService from Provider — it already carries the auth token.
-      final events = await context.read<ApiService>().getEvents();
+      final events = await context.read<ApiService>().getActiveEvents();
       if (mounted) setState(() => _events = events);
-    } catch (_) {
-      // keep empty list on error
+    } catch (e) {
+      debugPrint('[HomeScreen] Failed to load events: $e');
     } finally {
       if (mounted) setState(() => _isLoadingEvents = false);
     }
@@ -599,7 +599,7 @@ class _NewsSection extends StatelessWidget {
                 Icon(Icons.newspaper_rounded, color: primary, size: 17),
                 const SizedBox(width: 7),
                 Text(
-                  'Evenents & News',
+                  'Events & News',
                   style: AppTextStyles.h6(textColor)
                 ),
               ],
@@ -611,7 +611,7 @@ class _NewsSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                isLoading ? '…' : '${events.length} events',
+                isLoading ? '…' : '${events.length > 2 ? 2 : events.length} active',
                 style: AppTextStyles.p(primary)
               ),
             ),
@@ -637,7 +637,7 @@ class _NewsSection extends StatelessWidget {
           )
         else
           ...List.generate(
-            events.length > 5 ? 5 : events.length,
+            events.length > 2 ? 2 : events.length,
             (i) => _NewsItem(event: events[i]),
           ),
       ],
@@ -697,7 +697,7 @@ class _NewsItem extends StatelessWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Text(
-            'Southern Women\'s Museum · ${event.date}',
+            'Southern Women\'s Museum · ${event.formattedDate}',
             style: TextStyle(
               color: textColor.withValues(alpha: 0.45),
               fontSize: 11.5,
@@ -709,7 +709,152 @@ class _NewsItem extends StatelessWidget {
           color: textColor.withValues(alpha: 0.35),
           size: 20,
         ),
-        onTap: () {},
+        onTap: () => _showEventDetail(context),
+      ),
+    );
+  }
+
+  void _showEventDetail(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark
+        ? AppColors.primaryDarkTheme
+        : AppColors.primaryLightTheme;
+    final textColor = isDark
+        ? AppColors.textDarkTheme
+        : AppColors.textLightTheme;
+    final surface = Theme.of(context).colorScheme.surface;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Container(
+          color: surface,
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.75,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (context, scrollController) => SingleChildScrollView(
+              controller: scrollController,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 8),
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: textColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+
+                  // Image
+                  if (event.imageUrl != null && event.imageUrl!.isNotEmpty)
+                    SizedBox(
+                      height: 200,
+                      width: double.infinity,
+                      child: Image.network(
+                        event.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, stackTrace) => Container(
+                          color: const Color(0xFF1E1710),
+                          child: const Icon(
+                            Icons.article_outlined,
+                            color: Colors.grey,
+                            size: 40,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      height: 120,
+                      width: double.infinity,
+                      color: primary.withValues(alpha: 0.1),
+                      child: Icon(
+                        Icons.newspaper_rounded,
+                        color: primary.withValues(alpha: 0.4),
+                        size: 48,
+                      ),
+                    ),
+
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Status badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            event.status.toUpperCase(),
+                            style: TextStyle(
+                              color: primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Title
+                        Text(
+                          event.title,
+                          style: AppTextStyles.h5(textColor),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Date
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 13,
+                              color: textColor.withValues(alpha: 0.5),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              event.formattedDate,
+                              style: AppTextStyles.p(
+                                  textColor.withValues(alpha: 0.6)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Divider
+                        Divider(
+                            color: textColor.withValues(alpha: 0.1),
+                            height: 1),
+                        const SizedBox(height: 16),
+
+                        // Description
+                        Text(
+                          event.description,
+                          style: AppTextStyles.p(textColor),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

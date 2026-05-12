@@ -385,18 +385,19 @@ class ApiService {
   // ─── Events ─────────────────────────────────────────────────────────────────
 
   Future<List<Event>> getEvents() async {
-    // getJson returns a Map<String, dynamic>
-    final response = await getJson(path: '/admin/events');
+    final response = await getJson(path: '/events');
 
     final dynamic data = response['data'];
 
     if (data is List) {
       return data
-          .map((json) => Event.fromJson(json as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map(Event.fromJson)
           .toList();
     }
 
-    return [];
+    // Fallback: try paginated structure { data: { items: [...] } }
+    return _parsePaginatedList(response, Event.fromJson);
   }
 
   // Get only active events (đang diễn ra)
