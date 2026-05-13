@@ -24,7 +24,7 @@ class AuthButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
+          backgroundColor: Color(0xFFA80000),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -35,7 +35,7 @@ class AuthButton extends StatelessWidget {
                 width: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.surface),
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
             : Row(
@@ -44,11 +44,11 @@ class AuthButton extends StatelessWidget {
                   Text(
                     label,
                     style: textTheme.headlineSmall?.copyWith(
-                      color: colorScheme.surface,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, color: colorScheme.surface, size: 18),
+                  Icon(Icons.arrow_forward, color: Colors.white, size: 18),
                 ],
               ),
       ),

@@ -1,4 +1,4 @@
-import '../../../services/api_service.dart';
+import 'api_service.dart';
 import '../models/quiz_models.dart';
 
 class QuizService {

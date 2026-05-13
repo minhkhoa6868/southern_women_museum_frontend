@@ -60,9 +60,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                 end: Alignment.bottomCenter,
                 stops: [0.0, 0.35, 1.0],
                 colors: [
-                  Color(0xBB140F0B),
-                  Color(0xCC140F0B),
-                  Color(0xF5140F0B),
+                  AppColors.backgroundDarkTheme73,
+                  AppColors.backgroundDarkTheme80,
+                  AppColors.backgroundDarkTheme96,
                 ],
               ),
             ),

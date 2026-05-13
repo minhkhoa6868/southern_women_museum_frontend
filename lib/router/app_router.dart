@@ -54,7 +54,12 @@ class AppRouter {
         );
 
       case tours:
-        return MaterialPageRoute(builder: (_) => const TourScreen());
+        return MaterialPageRoute(
+          builder: (_) => const TourScreen(
+            roomId: '',
+            userId: '',
+          ),
+        );
 
       default:
         return MaterialPageRoute(

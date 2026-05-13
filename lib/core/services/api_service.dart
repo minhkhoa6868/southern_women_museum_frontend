@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -301,6 +302,33 @@ class ApiService {
   }
 
   // ─── Artifacts ──────────────────────────────────────────────────────────────
+  /// Fetch a list of ALL artifacts for the global map search.
+  Future<List<Artifact>> getAllArtifacts({
+    String? language,
+  }) async {
+    final lang = language ?? _language;
+    
+    try {
+      final response = await postJson(
+        path: '/artifacts/all',
+        body: {
+          'page': 1, 
+          'limit': 100, // Make sure this limit is high enough for all your artifacts!
+          'filters': {}, // Empty filters means "get everything"
+          'language': lang
+        },
+      );
+      
+      final list = _parsePaginatedList(response, Artifact.fromJson);
+      // Optional: Sort them alphabetically by name for the search dropdown
+      list.sort((a, b) => a.name.compareTo(b.name));
+      return list;
+      
+    } on ApiException catch (e) {
+      debugPrint('Failed to fetch all artifacts: $e');
+      return [];
+    }
+  }
 
   Future<List<Artifact>> getRoomArtifacts(
     String roomId, {

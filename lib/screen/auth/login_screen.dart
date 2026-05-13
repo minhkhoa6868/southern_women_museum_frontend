@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:southern_women_museum/router/app_router.dart';
+import '../../core/constants/color_constants.dart';
 import '../../core/services/auth_service.dart';
 import '../../widgets/auth_background.dart';
 import '../../widgets/auth_button.dart';
@@ -80,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(authService.error ?? 'Login failed'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorColor,
           ),
         );
       }

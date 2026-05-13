@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/constants/color_constants.dart';
 
 class LogoSection extends StatelessWidget {
   const LogoSection({super.key});
@@ -8,23 +9,23 @@ class LogoSection extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     
     return Container(
-      height: 80,
-      width: 80,
-      decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      height: 100,
+      width: 100,
+      // decoration: BoxDecoration(
+      //   color: colorScheme.primary.withOpacity(0.1),
+      //   borderRadius: BorderRadius.circular(12),
+      // ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.asset(
-          'assets/images/logo.png',
+          'assets/images/logo_gold.png',
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) {
             return const Center(
               child: Icon(
                 Icons.museum,
                 size: 40,
-                color: Colors.white,
+                color: AppColors.textDarkTheme,
               ),
             );
           },
