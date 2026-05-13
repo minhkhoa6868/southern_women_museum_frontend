@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../models/quiz_models.dart';
-import '../services/quiz_service.dart';
-import '../widgets/choice_button.dart';
-import '../widgets/countdown_timer.dart';
-import '../widgets/quiz_theme.dart';
+import '../../core/constants/color_constants.dart';
+import '../../core/theme/text_styles.dart';
+import '../../models/quiz_models.dart';
+import '../../services/quiz_service.dart';
+import '../../widgets/quiz/choice_button.dart';
+import '../../widgets/quiz/countdown_timer.dart';
 import 'quiz_result_screen.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -125,16 +126,30 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. DYNAMIC THEME DETECTION
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 2. ADAPTABLE COLORS
+    final primary = isDark ? AppColors.primaryDarkTheme : AppColors.primaryLightTheme;
+    final textColor = isDark ? AppColors.textDarkTheme : AppColors.textLightTheme;
+    final surface = isDark ? AppColors.backgroundDarkTheme : AppColors.backgroundLightTheme;
+
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: QuizColors.background,
-        body: Center(child: CircularProgressIndicator(color: QuizColors.gold)),
+      return Scaffold(
+        backgroundColor: surface,
+        body: Center(child: CircularProgressIndicator(color: primary)),
       );
     }
     if (_questions.isEmpty) {
-      return const Scaffold(
-        backgroundColor: QuizColors.background,
-        body: Center(child: Text('Không có câu hỏi nào.', style: TextStyle(color: QuizColors.cream))),
+      return Scaffold(
+        backgroundColor: surface,
+        body: Center(
+          child: Text(
+            'Không có câu hỏi nào.', 
+            style: AppTextStyles.p(textColor),
+          ),
+        ),
       );
     }
 
@@ -142,14 +157,14 @@ class _QuizScreenState extends State<QuizScreen> {
     final total = _questions.length;
 
     return Scaffold(
-      backgroundColor: QuizColors.background,
+      backgroundColor: surface,
       appBar: AppBar(
-        backgroundColor: QuizColors.background,
+        backgroundColor: surface,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
           widget.quizInfo.title,
-          style: const TextStyle(color: QuizColors.gold, fontWeight: FontWeight.bold, fontSize: 16),
+          style: AppTextStyles.h4(primary),
         ),
         centerTitle: true,
       ),
@@ -165,34 +180,34 @@ class _QuizScreenState extends State<QuizScreen> {
                 children: [
                   Text(
                     'Câu ${_currentIndex + 1}/$total',
-                    style: const TextStyle(color: QuizColors.goldLight, fontSize: 13),
+                    style: AppTextStyles.s1(textColor.withValues(alpha: 0.8)),
                   ),
                   Text(
                     '${((_currentIndex + 1) / total * 100).round()}%',
-                    style: const TextStyle(color: QuizColors.goldLight, fontSize: 13),
+                    style: AppTextStyles.s1(primary),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: (_currentIndex + 1) / total,
-                  minHeight: 5,
-                  backgroundColor: QuizColors.border,
-                  valueColor: const AlwaysStoppedAnimation<Color>(QuizColors.gold),
+                  minHeight: 6,
+                  backgroundColor: textColor.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(primary),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Question card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: QuizColors.cardDark,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: QuizColors.border),
+                  color: textColor.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: textColor.withValues(alpha: 0.15)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,13 +217,12 @@ class _QuizScreenState extends State<QuizScreen> {
                       seconds: widget.quizInfo.timeLimit,
                       onExpired: _onTimerExpired,
                     ),
-                    const SizedBox(height: 14),
-                    const Divider(color: QuizColors.border, height: 1),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
+                    Divider(color: textColor.withValues(alpha: 0.15), height: 1),
+                    const SizedBox(height: 16),
                     Text(
                       question.questionText,
-                      style: const TextStyle(
-                        color: QuizColors.cream,
+                      style: AppTextStyles.p(textColor).copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         height: 1.5,
@@ -217,13 +231,14 @@ class _QuizScreenState extends State<QuizScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Choices
               Expanded(
                 child: ListView.separated(
+                  physics: const BouncingScrollPhysics(),
                   itemCount: question.choices.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
                     final choice = question.choices[i];
                     return ChoiceButton(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/color_constants.dart';
 import '../../core/services/auth_service.dart';
 import '../../widgets/auth_background.dart';
 import '../../widgets/auth_button.dart';
@@ -79,7 +80,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(content: Text(message), backgroundColor: AppColors.errorColor),
     );
   }
 
@@ -87,7 +88,7 @@ class _SignupScreenState extends State<SignupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.successColor,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -152,8 +153,8 @@ class _SignupScreenState extends State<SignupScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _buildHeaders(textTheme, colorScheme, textColor),
-        const SizedBox(height: 40),
+        // _buildHeaders(textTheme, colorScheme, textColor),
+        // const SizedBox(height: 40),
         _buildWelcomeText(textTheme, textColor),
         const SizedBox(height: 32),
         _buildNameRow(theme, textColor),

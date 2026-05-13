@@ -11,6 +11,8 @@ import '../map/map_screen.dart';
 import '../profile/profile_screen.dart';
 import '../room/room_screen.dart';
 import '../tour/tour_screen.dart';
+import '../../models/artifact_model.dart';
+import '../../core/services/api_service.dart';
 
 class LayoutScreen extends StatefulWidget {
   const LayoutScreen({super.key, this.initialRoute});
@@ -25,11 +27,37 @@ class _LayoutScreenState extends State<LayoutScreen> {
   late String _currentRoute;
   String? _selectedRoomCode;
   String? _selectedRoomFloorLabel;
+  
+  // 1. Add these variables to hold your data
+  List<Artifact> _artifacts = [];
+  bool _isLoadingArtifacts = true;
 
   @override
   void initState() {
     super.initState();
     _currentRoute = widget.initialRoute ?? AppRouter.home;
+    
+    // 2. Call your fetch method when the layout loads
+    _fetchArtifacts();
+  }
+
+  // 3. Create the fetch method
+  Future<void> _fetchArtifacts() async {
+    try {
+      // Use Provider (or whatever locator you use) to get your service
+      final artifactService = context.read<ApiService>(); 
+      
+      // Call your brand new method!
+      final fetchedData = await artifactService.getAllArtifacts();
+
+      setState(() {
+        _artifacts = fetchedData;
+        _isLoadingArtifacts = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching artifacts: $e');
+      setState(() => _isLoadingArtifacts = false);
+    }
   }
 
   static const List<_NavItem> _items = <_NavItem>[
@@ -104,6 +132,7 @@ class _LayoutScreenState extends State<LayoutScreen> {
     switch (routeName) {
       case AppRouter.map:
         return MapScreen(
+          artifacts: _artifacts,
           onRoomTap: (String code, String floorLabel) {
             debugPrint(
               'LayoutScreen.onRoomTap -> code=$code floor=$floorLabel',
@@ -117,7 +146,7 @@ class _LayoutScreenState extends State<LayoutScreen> {
         );
       case AppRouter.room:
         if (_selectedRoomCode == null || _selectedRoomCode!.isEmpty) {
-          return const MapScreen();
+          return MapScreen(artifacts: _artifacts);
         }
         return RoomScreen(
           roomCode: _selectedRoomCode!,
@@ -138,7 +167,13 @@ class _LayoutScreenState extends State<LayoutScreen> {
           },
         );
       case AppRouter.tours:
-        return const TourScreen();
+        final user = context.read<AuthService>().currentUser;
+        final userId = user?.id ?? '';
+        final roomId = _selectedRoomCode ?? '';
+        return TourScreen(
+          roomId: roomId,
+          userId: userId,
+        );
       case AppRouter.profile:
         return ProfileScreen();
       case AppRouter.home:

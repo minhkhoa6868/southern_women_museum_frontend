@@ -5,9 +5,11 @@ import 'package:southern_women_museum/core/theme/text_styles.dart';
 import '../../core/constants/color_constants.dart';
 import '../../core/constants/floor_constants.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/language_service.dart';
 import '../../models/artifact_model.dart';
 import '../../models/room_model.dart';
+import '../quiz/quiz_entry_screen.dart';
 import '../shared/artifact_detail_modal.dart';
 
 class RoomScreen extends StatefulWidget {
@@ -122,6 +124,7 @@ class _RoomScreenState extends State<RoomScreen> {
                   children: [
                     _RoomHeader(
                       roomCode: data.room.code,
+                      roomId: data.room.id,
                       roomName: data.room.nameEn.isNotEmpty
                           ? data.room.nameEn
                           : data.room.name,
@@ -232,6 +235,7 @@ class _RoomScreenState extends State<RoomScreen> {
 class _RoomHeader extends StatelessWidget {
   const _RoomHeader({
     required this.roomCode,
+    required this.roomId,
     required this.roomName,
     required this.floorLabel,
     required this.primary,
@@ -240,6 +244,7 @@ class _RoomHeader extends StatelessWidget {
   });
 
   final String roomCode;
+  final String roomId;
   final String roomName;
   final String floorLabel;
   final Color primary;
@@ -255,6 +260,8 @@ class _RoomHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _getHeaderColors();
+    final user = context.read<AuthService>().currentUser;
+    final userId = user?.id ?? '';
 
     return Container(
       width: double.infinity,
@@ -302,6 +309,13 @@ class _RoomHeader extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          _QuizButton(
+            roomId: roomId,
+            userId: userId,
+            primary: colors['accent']!,
+            textColor: textColor,
+          ),
         ],
       ),
     );
@@ -333,6 +347,50 @@ class _BackButton extends StatelessWidget {
           border: Border.all(color: textColor.withValues(alpha: 0.2)),
         ),
         child: Icon(Icons.arrow_back_rounded, color: primary, size: 20),
+      ),
+    );
+  }
+}
+
+class _QuizButton extends StatelessWidget {
+  const _QuizButton({
+    required this.roomId,
+    required this.userId,
+    required this.primary,
+    required this.textColor,
+  });
+
+  final String roomId;
+  final String userId;
+  final Color primary;
+  final Color textColor;
+
+  void _takeQuiz(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuizEntryScreen(
+          roomId: roomId,
+          userId: userId,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _takeQuiz(context),
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: primary.withValues(alpha: 0.2),
+          border: Border.all(color: textColor.withValues(alpha: 0.2)),
+        ),
+        child: Icon(Icons.quiz_rounded, color: primary, size: 20),
       ),
     );
   }

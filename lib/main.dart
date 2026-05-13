@@ -90,7 +90,7 @@ import 'core/services/api_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/language_service.dart';
 import 'core/services/theme_service.dart';
-import 'features/quiz/screens/quiz_entry_screen.dart';
+import 'screen/quiz/quiz_entry_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

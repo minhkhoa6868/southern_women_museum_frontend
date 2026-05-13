@@ -341,7 +341,7 @@ class _HeroCard extends StatelessWidget {
                           Text(
                             'GUIDE TO SOUTHERN WOMEN\'S MUSEUM',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.88),
+                              color: AppColors.whiteColor.withValues(alpha: 0.88),
                               fontSize: 9.5,
                               letterSpacing: 1.3,
                               fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/color_constants.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/language_service.dart';
 import '../../core/services/theme_service.dart';
@@ -31,7 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _lastName = '';
   String _email = '';
   String _phone = '';
-  String _membership = 'Museum member';
+  final String _membership = 'Museum member';
 
   @override
   void initState() {
@@ -141,12 +142,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const Icon(Icons.check_circle, color: AppColors.textDarkTheme, size: 20),
             const SizedBox(width: 8),
             Text(message),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.successColor,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -157,12 +158,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const Icon(Icons.error_outline, color: AppColors.textDarkTheme, size: 20),
             const SizedBox(width: 8),
             Text(message),
           ],
         ),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.errorColor,
       ),
     );
   }
@@ -187,15 +188,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFFE07A6A).withValues(alpha: 0.2),
-                      const Color(0xFFE07A6A).withValues(alpha: 0.05),
+                      AppColors.logoutColor.withValues(alpha: 0.2),
+                      AppColors.logoutColor.withValues(alpha: 0.05),
                     ],
                   ),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.logout_rounded,
-                  color: const Color(0xFFE07A6A),
+                  color: AppColors.logoutColor,
                   size: 40,
                 ),
               ),
@@ -253,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE07A6A),
+                        backgroundColor: AppColors.logoutColor,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -263,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: const Text(
                         'Sign Out',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.textDarkTheme,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -454,7 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     _getInitials(),
                     style: textTheme.headlineMedium?.copyWith(
-                      color: Colors.white,
+                      color: AppColors.textDarkTheme,
                       fontWeight: FontWeight.bold,
                       fontSize: 32,
                     ),
@@ -858,7 +859,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: const Text(
                               'Save changes',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppColors.textDarkTheme,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1006,27 +1007,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFE07A6A).withValues(alpha: 0.08),
+        color: AppColors.logoutColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFFE07A6A).withValues(alpha: 0.25),
+          color: AppColors.logoutColor.withValues(alpha: 0.25),
           width: 1,
         ),
       ),
       child: OutlinedButton.icon(
         onPressed: () => _handleSignOut(authService),
-        icon: Icon(Icons.logout_outlined, color: const Color(0xFFE07A6A)),
+        icon: Icon(Icons.logout_outlined, color: AppColors.logoutColor),
         label: Text(
           'Sign Out',
           style: TextStyle(
-            color: const Color(0xFFE07A6A),
+            color: AppColors.logoutColor,
             fontWeight: FontWeight.w600,
             fontSize: 16,
           ),
         ),
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.transparent,
-          foregroundColor: const Color(0xFFE07A6A),
+          foregroundColor: AppColors.logoutColor,
           side: BorderSide.none,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
