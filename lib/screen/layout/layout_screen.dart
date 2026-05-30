@@ -1,0 +1,340 @@
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/constants/color_constants.dart';
+import '../../core/services/auth_service.dart';
+import '../../router/app_router.dart';
+import '../home/home_screen.dart';
+import '../map/map_screen.dart';
+import '../profile/profile_screen.dart';
+import '../room/room_screen.dart';
+import '../tour/tour_screen.dart';
+import '../../models/artifact_model.dart';
+import '../../core/services/api_service.dart';
+
+class LayoutScreen extends StatefulWidget {
+  const LayoutScreen({super.key, this.initialRoute});
+
+  final String? initialRoute;
+
+  @override
+  State<LayoutScreen> createState() => _LayoutScreenState();
+}
+
+class _LayoutScreenState extends State<LayoutScreen> {
+  late String _currentRoute;
+  String? _selectedRoomCode;
+  String? _selectedRoomFloorLabel;
+  
+  // 1. Add these variables to hold your data
+  List<Artifact> _artifacts = [];
+  bool _isLoadingArtifacts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRoute = widget.initialRoute ?? AppRouter.home;
+    
+    // 2. Call your fetch method when the layout loads
+    _fetchArtifacts();
+  }
+
+  // 3. Create the fetch method
+  Future<void> _fetchArtifacts() async {
+    try {
+      // Use Provider (or whatever locator you use) to get your service
+      final artifactService = context.read<ApiService>(); 
+      
+      // Call your brand new method!
+      final fetchedData = await artifactService.getAllArtifacts();
+
+      setState(() {
+        _artifacts = fetchedData;
+        _isLoadingArtifacts = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching artifacts: $e');
+      setState(() => _isLoadingArtifacts = false);
+    }
+  }
+
+  static const List<_NavItem> _items = <_NavItem>[
+    _NavItem(label: 'Home', icon: Icons.home_rounded, route: AppRouter.home),
+    _NavItem(label: 'Map', icon: Icons.map_rounded, route: AppRouter.map),
+    _NavItem(
+      label: 'Tour',
+      icon: Icons.explore_rounded,
+      route: AppRouter.tours,
+    ),
+    _NavItem(
+      label: 'Profile',
+      icon: Icons.person_rounded,
+      route: AppRouter.profile,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      extendBody: true,
+      body: Container(
+        color: isDark
+            ? AppColors.backgroundDarkTheme
+            : AppColors.backgroundLightTheme,
+        child: SafeArea(
+          // child: Padding(
+          // padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const SizedBox(height: 12),
+
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(
+                      _currentRoute == AppRouter.room
+                          ? '$_currentRoute-$_selectedRoomCode'
+                          : _currentRoute,
+                    ),
+                    child: _buildPageWidget(_currentRoute),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // ),
+        ),
+      ),
+
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
+        child: _GlassNavigationBar(
+          items: _items,
+          selectedIndex: _getSelectedIndex(_currentRoute),
+          onTap: (String routeName) {
+            _onNavTap(routeName);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageWidget(String routeName) {
+    switch (routeName) {
+      case AppRouter.map:
+        return MapScreen(
+          artifacts: _artifacts,
+          onRoomTap: (String code, String floorLabel) {
+            debugPrint(
+              'LayoutScreen.onRoomTap -> code=$code floor=$floorLabel',
+            );
+            setState(() {
+              _selectedRoomCode = code;
+              _selectedRoomFloorLabel = floorLabel;
+              _currentRoute = AppRouter.room;
+            });
+          },
+        );
+      case AppRouter.room:
+        if (_selectedRoomCode == null || _selectedRoomCode!.isEmpty) {
+          return MapScreen(artifacts: _artifacts);
+        }
+        return RoomScreen(
+          roomCode: _selectedRoomCode!,
+          floorLabel: _selectedRoomFloorLabel,
+          onBack: () {
+            setState(() {
+              _currentRoute = AppRouter.map;
+            });
+          },
+          onMoveToRoom: (newRoomCode, newFloorLabel) {
+            debugPrint(
+              'LayoutScreen.onMoveToRoom -> code=$newRoomCode floor=$newFloorLabel',
+            );
+            setState(() {
+              _selectedRoomCode = newRoomCode;
+              _selectedRoomFloorLabel = newFloorLabel;
+            });
+          },
+        );
+      case AppRouter.tours:
+        final user = context.read<AuthService>().currentUser;
+        final userId = user?.id ?? '';
+        final roomId = _selectedRoomCode ?? '';
+        return TourScreen(
+          roomId: roomId,
+          userId: userId,
+        );
+      case AppRouter.profile:
+        return ProfileScreen();
+      case AppRouter.home:
+      default:
+        final user = context.read<AuthService>().currentUser;
+        final name = user != null
+            ? '${user.firstName} ${user.lastName}'.trim()
+            : 'Guest';
+        return HomeScreen(userName: name);
+    }
+  }
+
+  int _getSelectedIndex(String routeName) {
+    if (routeName == AppRouter.room) {
+      return _items.indexWhere((item) => item.route == AppRouter.map);
+    }
+    return _items.indexWhere((item) => item.route == routeName);
+  }
+
+  void _onNavTap(String routeName) {
+    if (_currentRoute != routeName) {
+      setState(() {
+        _currentRoute = routeName;
+        if (routeName != AppRouter.room) {
+          _selectedRoomCode = null;
+          _selectedRoomFloorLabel = null;
+        }
+      });
+    }
+  }
+}
+
+class _GlassNavigationBar extends StatelessWidget {
+  const _GlassNavigationBar({
+    required this.items,
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  final List<_NavItem> items;
+  final int selectedIndex;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final Color selectedColor = isDark
+        ? AppColors.textDarkTheme
+        : AppColors.textLightTheme;
+    final Color unselectedColor = isDark
+        ? AppColors.textDarkTheme.withValues(alpha: 0.62)
+        : AppColors.textLightTheme.withValues(alpha: 0.58);
+    final Color borderColor = isDark
+        ? AppColors.primaryDarkTheme.withValues(alpha: 0.30)
+        : AppColors.secondaryLightTheme.withValues(alpha: 0.70);
+    final Color barColor = isDark
+        ? AppColors.backgroundDarkTheme.withValues(alpha: 0.96)
+        : AppColors.backgroundLightTheme.withValues(alpha: 0.98);
+    final Color shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.38)
+        : AppColors.primaryLightTheme.withValues(alpha: 0.16);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(48),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+        child: Container(
+          height: 105,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(48),
+
+            // Outer glass border
+            border: Border.all(color: borderColor, width: 1.4),
+            color: barColor,
+
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: shadowColor,
+                blurRadius: 30,
+                spreadRadius: 2,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(48),
+              color: isDark
+                  ? AppColors.backgroundDarkTheme.withValues(alpha: 0.40)
+                  : AppColors.backgroundLightTheme.withValues(alpha: 0.35),
+            ),
+
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+
+              child: Row(
+                children: List<Widget>.generate(items.length, (int index) {
+                  final bool isSelected = index == selectedIndex;
+                  final _NavItem item = items[index];
+
+                  return Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(28),
+                      onTap: () => onTap(item.route),
+
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 6,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Icon(
+                              item.icon,
+                              size: 34,
+                              color: isSelected
+                                  ? selectedColor
+                                  : unselectedColor,
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            Text(
+                              item.label,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? selectedColor
+                                    : unselectedColor,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                fontSize: 14,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem {
+  const _NavItem({
+    required this.label,
+    required this.icon,
+    required this.route,
+  });
+
+  final String label;
+  final IconData icon;
+  final String route;
+}
